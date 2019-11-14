@@ -1,0 +1,23 @@
+# CLion stuff
+/.idea
+cmake-build-*
+
+# Vim stuff
+*.swp
+
+# My CMake build
+build
+
+# Test artifacts
+*.o
+*.optrpt
+*.s
+*.ll
+/node-main
+*-out.cpp
+*-out.cu
+*-out.c
+
+# Python artifacts
+__pycache__/
+*.egg-info
