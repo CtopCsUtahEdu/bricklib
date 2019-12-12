@@ -74,6 +74,4 @@ struct ZMORT {
   }
 };
 
-extern ZMORT zmort0;
-
 #endif //BRICK_ZMORT_H

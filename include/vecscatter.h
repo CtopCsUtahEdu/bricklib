@@ -5,7 +5,7 @@
 #ifndef BRICK_VECSCATTER_H
 #define BRICK_VECSCATTER_H
 
-#define bElem float
+#define bElem double
 
 #define VS_STRING(x) #x
 #define VS_TOSTR(x) VS_STRING(x)

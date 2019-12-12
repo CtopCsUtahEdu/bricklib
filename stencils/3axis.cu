@@ -1,5 +1,5 @@
 //
-// Created by joe on 12/5/18.
+// Created by Tuowen Zhao on 12/5/18.
 //
 
 #include"stencils_cu.h"
