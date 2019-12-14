@@ -42,13 +42,24 @@ include_directories(
         ${MPI_CXX_HEADER_DIR}
 )
 
-add_executable(zmort zmorttest.cpp src/zmort.cpp)
-add_executable(decomp bitset.cpp)
-add_executable(greedy bitset-greedy.cpp)
-
 add_library(brickhelper stencils/brickcompare.cpp stencils/multiarray.cpp)
 
 add_subdirectory(src)
 add_subdirectory(single)
 add_subdirectory(weak)
 add_subdirectory(strong)
+
+# Generating html doc from doxygen output
+set(PROJECT_INC_DIRS "${PROJECT_SOURCE_DIR}/include")
+
+find_package(Doxygen
+        REQUIRED dot)
+
+if(DOXYGEN_FOUND)
+    configure_file(docs/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
+    add_custom_target(doxydoc
+            Doxygen::doxygen ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+            COMMENT "Generating API documentation with Doxygen" VERBATIM
+            )
+endif()

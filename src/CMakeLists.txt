@@ -1,1 +1,1 @@
-add_library(brick brick-mpi.cpp memfd.cpp zmort.cpp)
+add_library(brick brick-mpi.cpp memfd.cpp)

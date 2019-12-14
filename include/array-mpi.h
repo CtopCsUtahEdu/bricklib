@@ -8,6 +8,12 @@
 #include "brick-mpi.h"
 #include <mpi.h>
 
+inline void elemcpy(bElem *dst, const bElem *src, unsigned long size) {
+#pragma omp simd
+  for (unsigned long i = 0; i < size; ++i)
+    dst[i] = src[i];
+}
+
 template<unsigned dim>
 inline bElem *pack(bElem *arr, BitSet neighbor, bElem *buffer_out, const std::vector<unsigned long> &arrstride,
                    const std::vector<long> &dimlist, const std::vector<long> &padding, const std::vector<long> &ghost) {

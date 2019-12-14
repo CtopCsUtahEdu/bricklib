@@ -1,16 +1,16 @@
 //
-// Created by joe on 12/5/18.
+// Created by Tuowen Zhao on 12/5/18.
 //
 
-#include"stencils_cu.h"
-#include<iostream>
+#include "stencils_cu.h"
+#include <iostream>
 #include "bricksetup.h"
 #include "multiarray.h"
 #include "brickcompare.h"
 #include "gpuvfold.h"
 
 __global__ void
-d3pt7_brick(unsigned (*grid)[STRIDEB][STRIDEB], Brick<Dim<BDIM>, Dim<VFOLD>> bIn, Brick<Dim<BDIM>, Dim<VFOLD>> bOut,
+d3pt7_brick(unsigned (*grid)[STRIDEB][STRIDEB], Brick <Dim<BDIM>, Dim<VFOLD>> bIn, Brick <Dim<BDIM>, Dim<VFOLD>> bOut,
             bElem *coeff) {
   long tk = GB + blockIdx.z;
   long tj = GB + blockIdx.y;
@@ -26,8 +26,9 @@ d3pt7_brick(unsigned (*grid)[STRIDEB][STRIDEB], Brick<Dim<BDIM>, Dim<VFOLD>> bIn
 }
 
 __global__ void
-d3pt7_brick_trans(unsigned (*grid)[STRIDEB][STRIDEB], Brick<Dim<BDIM>, Dim<VFOLD>> bIn, Brick<Dim<BDIM>, Dim<VFOLD>> bOut,
-            bElem *coeff) {
+d3pt7_brick_trans(unsigned (*grid)[STRIDEB][STRIDEB], Brick <Dim<BDIM>, Dim<VFOLD>> bIn,
+                  Brick <Dim<BDIM>, Dim<VFOLD>> bOut,
+                  bElem *coeff) {
   long tk = GB + blockIdx.z;
   long tj = GB + blockIdx.y;
   long ti = GB + blockIdx.x;
@@ -61,13 +62,15 @@ d3pt7_arr_warp(bElem (*arr_in)[STRIDE][STRIDE], bElem (*arr_out)[STRIDE][STRIDE]
 
 #define bIn(i, j, k) arr_in[k][j][i]
 #define bOut(i, j, k) arr_out[k][j][i]
+
 __global__ void
 d3pt7_arr_scatter(bElem (*arr_in)[STRIDE][STRIDE], bElem (*arr_out)[STRIDE][STRIDE], bElem *coeff) {
   long k = GZ + blockIdx.z * TILE;
   long j = GZ + blockIdx.y * TILE;
   long i = GZ + blockIdx.x * 32;
-  tile("7pt.py", VSVEC, (TILE, TILE, 32), ("k", "j", "i"), (1,1,32));
+  tile("7pt.py", VSVEC, (TILE, TILE, 32), ("k", "j", "i"), (1, 1, 32));
 }
+
 #undef bIn
 #undef bOut
 
@@ -85,7 +88,7 @@ void d3pt7cu() {
   BrickInfo<3> *bInfo_dev;
   BrickInfo<3> _bInfo_dev = movBrickInfo(bInfo, cudaMemcpyHostToDevice);
   {
-    unsigned size = sizeof(BrickInfo<3>);
+    unsigned size = sizeof(BrickInfo < 3 > );
     cudaMalloc(&bInfo_dev, size);
     cudaMemcpy(bInfo_dev, &_bInfo_dev, size, cudaMemcpyHostToDevice);
   }
@@ -114,8 +117,8 @@ void d3pt7cu() {
 
   auto bSize = cal_size<BDIM>::value;
   auto bStorage = BrickStorage::allocate(bInfo.nbricks, bSize * 2);
-  Brick<Dim<BDIM>, Dim<VFOLD>> bIn(&bInfo, bStorage, 0);
-  Brick<Dim<BDIM>, Dim<VFOLD>> bOut(&bInfo, bStorage, bSize);
+  Brick <Dim<BDIM>, Dim<VFOLD>> bIn(&bInfo, bStorage, 0);
+  Brick <Dim<BDIM>, Dim<VFOLD>> bOut(&bInfo, bStorage, bSize);
 
   copyToBrick<3>({STRIDEG, STRIDEG, STRIDEG}, {PADDING, PADDING, PADDING}, {0, 0, 0}, in_ptr, grid_ptr, bIn);
 
@@ -130,39 +133,39 @@ void d3pt7cu() {
 
   auto brick_func = [&grid, &bInfo_dev, &bStorage_dev, &coeff_dev]() -> void {
     auto bSize = cal_size<BDIM>::value;
-    Brick<Dim<BDIM>, Dim<VFOLD>> bIn(bInfo_dev, bStorage_dev, 0);
-    Brick<Dim<BDIM>, Dim<VFOLD>> bOut(bInfo_dev, bStorage_dev, bSize);
+    Brick <Dim<BDIM>, Dim<VFOLD>> bIn(bInfo_dev, bStorage_dev, 0);
+    Brick <Dim<BDIM>, Dim<VFOLD>> bOut(bInfo_dev, bStorage_dev, bSize);
     dim3 block(NB, NB, NB), thread(BDIM);
-    d3pt7_brick<<< block, thread >>>(grid, bIn, bOut, coeff_dev);
+    d3pt7_brick << < block, thread >> > (grid, bIn, bOut, coeff_dev);
   };
 
   auto cuarr_func = [&in_dev, &out_dev, &coeff_dev]() -> void {
     bElem(*arr_in)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) in_dev;
     bElem(*arr_out)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) out_dev;
     dim3 block(NB, NB, NB), thread(BDIM);
-    d3pt7_arr<<< block, thread >>>(arr_in, arr_out, coeff_dev);
+    d3pt7_arr << < block, thread >> > (arr_in, arr_out, coeff_dev);
   };
 
   auto cuarr_warp = [&in_dev, &out_dev, &coeff_dev]() -> void {
     bElem(*arr_in)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) in_dev;
     bElem(*arr_out)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) out_dev;
-    dim3 block(N/32, NB, NB), thread(32);
-    d3pt7_arr_warp<<< block, thread >>>(arr_in, arr_out, coeff_dev);
+    dim3 block(N / 32, NB, NB), thread(32);
+    d3pt7_arr_warp << < block, thread >> > (arr_in, arr_out, coeff_dev);
   };
 
   auto cuarr_scatter = [&in_dev, &out_dev, &coeff_dev]() -> void {
     bElem(*arr_in)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) in_dev;
     bElem(*arr_out)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) out_dev;
-    dim3 block(N/32, NB, NB), thread(32);
-    d3pt7_arr_scatter<<< block, thread >>>(arr_in, arr_out, coeff_dev);
+    dim3 block(N / 32, NB, NB), thread(32);
+    d3pt7_arr_scatter << < block, thread >> > (arr_in, arr_out, coeff_dev);
   };
 
   auto brick_func_trans = [&grid, &bInfo_dev, &bStorage_dev, &coeff_dev]() -> void {
     auto bSize = cal_size<BDIM>::value;
-    Brick<Dim<BDIM>, Dim<VFOLD>> bIn(bInfo_dev, bStorage_dev, 0);
-    Brick<Dim<BDIM>, Dim<VFOLD>> bOut(bInfo_dev, bStorage_dev, bSize);
+    Brick <Dim<BDIM>, Dim<VFOLD>> bIn(bInfo_dev, bStorage_dev, 0);
+    Brick <Dim<BDIM>, Dim<VFOLD>> bOut(bInfo_dev, bStorage_dev, bSize);
     dim3 block(NB, NB, NB), thread(32);
-    d3pt7_brick_trans<<< block, thread >>>(grid, bIn, bOut, coeff_dev);
+    d3pt7_brick_trans << < block, thread >> > (grid, bIn, bOut, coeff_dev);
   };
 
   std::cout << "d3pt7" << std::endl;
@@ -176,13 +179,13 @@ void d3pt7cu() {
   cudaMemcpy(bStorage.dat, bStorage_dev.dat, bStorage.chunks * bStorage.step * sizeof(bElem), cudaMemcpyDeviceToHost);
   cudaDeviceSynchronize();
 
-  if (!compareBrick<3>({N, N, N}, {PADDING,PADDING,PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
+  if (!compareBrick<3>({N, N, N}, {PADDING, PADDING, PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
     throw std::runtime_error("result mismatch!");
 
   cudaMemcpy(out_ptr, out_dev, size, cudaMemcpyDeviceToHost);
   cudaDeviceSynchronize();
 
-  if (!compareBrick<3>({N, N, N}, {PADDING,PADDING,PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
+  if (!compareBrick<3>({N, N, N}, {PADDING, PADDING, PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
     throw std::runtime_error("result mismatch!");
 
   free(in_ptr);
@@ -197,8 +200,8 @@ void d3pt7cu() {
 }
 
 __global__ void
-d3cond_brick(unsigned (*grid)[STRIDEB][STRIDEB], Brick<Dim<BDIM>, Dim<VFOLD>> bIn, Brick<Dim<BDIM>, Dim<VFOLD>> bOut,
-            bElem *coeff) {
+d3cond_brick(unsigned (*grid)[STRIDEB][STRIDEB], Brick <Dim<BDIM>, Dim<VFOLD>> bIn, Brick <Dim<BDIM>, Dim<VFOLD>> bOut,
+             bElem *coeff) {
   long tk = GB + blockIdx.z;
   long tj = GB + blockIdx.y;
   long ti = GB + blockIdx.x;
@@ -215,8 +218,9 @@ d3cond_brick(unsigned (*grid)[STRIDEB][STRIDEB], Brick<Dim<BDIM>, Dim<VFOLD>> bI
 }
 
 __global__ void
-d3cond_brick_trans(unsigned (*grid)[STRIDEB][STRIDEB], Brick<Dim<BDIM>, Dim<VFOLD>> bIn, Brick<Dim<BDIM>, Dim<VFOLD>> bOut,
-            bElem *coeff) {
+d3cond_brick_trans(unsigned (*grid)[STRIDEB][STRIDEB], Brick <Dim<BDIM>, Dim<VFOLD>> bIn,
+                   Brick <Dim<BDIM>, Dim<VFOLD>> bOut,
+                   bElem *coeff) {
   long tk = GB + blockIdx.z;
   long tj = GB + blockIdx.y;
   long ti = GB + blockIdx.x;
@@ -251,7 +255,7 @@ void d3condcu() {
   BrickInfo<3> *bInfo_dev;
   BrickInfo<3> _bInfo_dev = movBrickInfo(bInfo, cudaMemcpyHostToDevice);
   {
-    unsigned size = sizeof(BrickInfo<3>);
+    unsigned size = sizeof(BrickInfo < 3 > );
     cudaMalloc(&bInfo_dev, size);
     cudaMemcpy(bInfo_dev, &_bInfo_dev, size, cudaMemcpyHostToDevice);
   }
@@ -280,8 +284,8 @@ void d3condcu() {
 
   auto bSize = cal_size<BDIM>::value;
   auto bStorage = BrickStorage::allocate(bInfo.nbricks, bSize * 2);
-  Brick<Dim<BDIM>, Dim<VFOLD>> bIn(&bInfo, bStorage, 0);
-  Brick<Dim<BDIM>, Dim<VFOLD>> bOut(&bInfo, bStorage, bSize);
+  Brick <Dim<BDIM>, Dim<VFOLD>> bIn(&bInfo, bStorage, 0);
+  Brick <Dim<BDIM>, Dim<VFOLD>> bOut(&bInfo, bStorage, bSize);
 
   copyToBrick<3>({STRIDEG, STRIDEG, STRIDEG}, {PADDING, PADDING, PADDING}, {0, 0, 0}, in_ptr, grid_ptr, bIn);
 
@@ -300,25 +304,25 @@ void d3condcu() {
 
   auto brick_func = [&grid, &bInfo_dev, &bStorage_dev, &coeff_dev]() -> void {
     auto bSize = cal_size<BDIM>::value;
-    Brick<Dim<BDIM>, Dim<VFOLD>> bIn(bInfo_dev, bStorage_dev, 0);
-    Brick<Dim<BDIM>, Dim<VFOLD>> bOut(bInfo_dev, bStorage_dev, bSize);
+    Brick <Dim<BDIM>, Dim<VFOLD>> bIn(bInfo_dev, bStorage_dev, 0);
+    Brick <Dim<BDIM>, Dim<VFOLD>> bOut(bInfo_dev, bStorage_dev, bSize);
     dim3 block(NB, NB, NB), thread(BDIM);
-    d3cond_brick<<< block, thread >>>(grid, bIn, bOut, coeff_dev);
+    d3cond_brick << < block, thread >> > (grid, bIn, bOut, coeff_dev);
   };
 
   auto cuarr_func = [&in_dev, &out_dev, &coeff_dev]() -> void {
     bElem(*arr_in)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) in_dev;
     bElem(*arr_out)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) out_dev;
     dim3 block(NB, NB, NB), thread(BDIM);
-    d3cond_arr<<< block, thread >>>(arr_in, arr_out, coeff_dev);
+    d3cond_arr << < block, thread >> > (arr_in, arr_out, coeff_dev);
   };
 
   auto brick_func_trans = [&grid, &bInfo_dev, &bStorage_dev, &coeff_dev]() -> void {
     auto bSize = cal_size<BDIM>::value;
-    Brick<Dim<BDIM>, Dim<VFOLD>> bIn(bInfo_dev, bStorage_dev, 0);
-    Brick<Dim<BDIM>, Dim<VFOLD>> bOut(bInfo_dev, bStorage_dev, bSize);
+    Brick <Dim<BDIM>, Dim<VFOLD>> bIn(bInfo_dev, bStorage_dev, 0);
+    Brick <Dim<BDIM>, Dim<VFOLD>> bOut(bInfo_dev, bStorage_dev, bSize);
     dim3 block(NB, NB, NB), thread(32);
-    d3cond_brick_trans<<< block, thread >>>(grid, bIn, bOut, coeff_dev);
+    d3cond_brick_trans << < block, thread >> > (grid, bIn, bOut, coeff_dev);
   };
 
   std::cout << "d3cond" << std::endl;
@@ -330,13 +334,13 @@ void d3condcu() {
   cudaMemcpy(bStorage.dat, bStorage_dev.dat, bStorage.chunks * bStorage.step * sizeof(bElem), cudaMemcpyDeviceToHost);
   cudaDeviceSynchronize();
 
-  if (!compareBrick<3>({N, N, N}, {PADDING,PADDING,PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
+  if (!compareBrick<3>({N, N, N}, {PADDING, PADDING, PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
     throw std::runtime_error("result mismatch!");
 
   cudaMemcpy(out_ptr, out_dev, size, cudaMemcpyDeviceToHost);
   cudaDeviceSynchronize();
 
-  if (!compareBrick<3>({N, N, N}, {PADDING,PADDING,PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
+  if (!compareBrick<3>({N, N, N}, {PADDING, PADDING, PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
     throw std::runtime_error("result mismatch!");
 
   free(in_ptr);

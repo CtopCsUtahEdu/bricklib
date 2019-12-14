@@ -1,25 +1,42 @@
-//
-// Created by Tuowen Zhao on 6/16/19.
-//
+/**
+ * @file
+ * @brief Header for Z-Mort ordering
+ */
 
 #ifndef BRICK_ZMORT_H
 #define BRICK_ZMORT_H
 
-// This is a preliminary n-d zmort implementation
-// The aim is to support 2 operations one is to convert from coordinate into index, another is from index into
-// coordinate
-
-// Note that zmort can be constructed incremental
-
+/**
+ * @brief n-dimensional Z-Mort ordering
+ *
+ * Preliminary n-d Z-Mort implementation whose returning index is not compact. Only for perfect 2-exponentials will
+ * return compact & contiguous index.
+ *
+ * This can be viewed as a single Z-Mort index or as an array of indices that represent the original n-dimensional
+ * position. It can be constructed incrementally from 0-d Z-Mort.
+ */
 struct ZMORT {
-  unsigned long id; // index
-  unsigned long dim; // number of dimensions
+  unsigned long id; ///< Z-Mort index of this struct
+  unsigned long dim; ///< Number of dimensions
 
+  /// Default to 0-d
   ZMORT() : id(0ul), dim(0ul) {}
 
+  /// Initialize using z-mort id and the number of dimensions
   ZMORT(unsigned long id, unsigned long dim) : id(id), dim(dim) {};
 
-  // This add another dimension to current
+  /**
+   * @brief Continuously construct a Z-Mort index
+   * @param p Position in the current dimension
+   * @return ZMORT with one more dimension than before
+   *
+   * For example:
+   * @code{.cpp}
+   * ZMORT z = 0ul;
+   * ZMORT n = z[5][6][7];
+   * // n.dim = 3, n(0) = 7, n(1) = 6, n(2) = 5
+   * @endcode
+   */
   inline ZMORT operator[](unsigned long p) {
     unsigned long oid = id;
 
@@ -39,7 +56,13 @@ struct ZMORT {
     return zmort;
   }
 
-  // This separate out one dimension
+  /**
+   * @brief Get positions of a Z-Mort index on the d-th dimension
+   * @param d The dimension to get index, 0 is the fastest varying dimension
+   * @return The position
+   *
+   * For example, see ZMORT::operator[](unsigned long).
+   */
   inline unsigned long operator()(unsigned long d) {
     unsigned long oid = id >> d;
     unsigned long pos = 0;
@@ -54,6 +77,12 @@ struct ZMORT {
     return pos;
   }
 
+  /**
+   * @brief Set positions of a Z-Mort index on the d-th dimension
+   * @param d The dimension, 0 is the fastest varying dimension
+   * @param p The position
+   * @return A NEW ZMORT
+   */
   inline ZMORT set(unsigned long d, unsigned long p) {
     unsigned long oid = id >> d;
     unsigned long omask = (1ul << dim) - 2ul;
@@ -69,11 +98,10 @@ struct ZMORT {
     return zmort;
   }
 
+  /// Implicit conversion to extract the Z-Mort index
   inline operator unsigned long() const {
     return id;
   }
 };
-
-extern ZMORT zmort0;
 
 #endif //BRICK_ZMORT_H

@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  parseArgs(argc, argv, "cuda");
+  parseArgs(argc, argv, "cpu");
 
   int size, rank;
 
