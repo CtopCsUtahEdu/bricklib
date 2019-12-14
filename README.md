@@ -1,6 +1,6 @@
 # Brick Layout for C++
 
-## Require
+## Requirements
 
 * *C++14* compatible compiler
 * OpenMP
@@ -8,8 +8,9 @@
 * CMake
 * **Optional** backends
     * *CUDA*
-    * *HIP*
+    * *OpenCL*
     * *SYCL*
+    * *HIP* **WIP**
 
 ## Building and running
 
@@ -56,3 +57,8 @@ Template arguments & code ordering is contiguous dimension last. Dimension array
 
 A large portion of the brick library is entirely based on templates and can be included as a header only library.
 
+## Publications
+
+@cite zhao2018 Zhao, Tuowen, Samuel Williams, Mary Hall, and Hans Johansen. "Delivering Performance-Portable Stencil Computations on CPUs and GPUs Using Bricks." In 2018 IEEE/ACM International Workshop on Performance, Portability and Productivity in HPC (P3HPC), pp. 59-70. IEEE, 2018. 
+
+@cite zhao2019 Zhao, Tuowen, Protonu Basu, Samuel Williams, Mary Hall, and Hans Johansen. "Exploiting reuse and vectorization in blocked stencil computations on CPUs and GPUs." In Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis, p. 52. ACM, 2019.

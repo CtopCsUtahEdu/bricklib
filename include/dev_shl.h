@@ -1,6 +1,9 @@
-//
-// Created by Tuowen Zhao on 11/11/19.
-//
+/**
+ * @file
+ * @brief Implementation for various shuffle implementations.
+ *
+ * Will be included when using the respective brick*.h header; Not to be included directly.
+ */
 
 #ifndef BRICK_DEV_SHL_H
 #define BRICK_DEV_SHL_H

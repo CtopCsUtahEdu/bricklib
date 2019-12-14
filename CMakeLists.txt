@@ -52,12 +52,13 @@ add_subdirectory(strong)
 # Generating html doc from doxygen output
 set(PROJECT_INC_DIRS "${PROJECT_SOURCE_DIR}/include")
 
-find_package(Doxygen)
+find_package(Doxygen
+        REQUIRED dot)
 
 if(DOXYGEN_FOUND)
     configure_file(docs/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
     add_custom_target(doxydoc
-            ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+            Doxygen::doxygen ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
             COMMENT "Generating API documentation with Doxygen" VERBATIM
             )
