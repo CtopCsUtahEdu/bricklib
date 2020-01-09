@@ -1,6 +1,7 @@
-//
-// Created by Tuowen Zhao on 6/14/19.
-//
+/**
+* @file
+* @brief MPI for arrays
+*/
 
 #ifndef BRICK_ARRAY_MPI_H
 #define BRICK_ARRAY_MPI_H

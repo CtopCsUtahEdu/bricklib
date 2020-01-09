@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
-project(brick LANGUAGES CXX)
+project(brick
+        VERSION 0.1
+        LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -25,9 +27,9 @@ if (HAS_SYCL)
     get_filename_component(bin_dir "${CMAKE_CXX_COMPILER}" PATH)
     get_filename_component(SYCL_DIR "${bin_dir}" PATH)
 
-    message(STATUS "Setting include/lib path according to compiler path: ${CMAKE_CXX_COMPILER}")
-    message(STATUS "SYCL compiler install dir: ${SYCL_DIR}")
 
+  message(STATUS "Setting include/lib path according to compiler path: ${CMAKE_CXX_COMPILER}")
+    message(STATUS "SYCL compiler install dir: ${SYCL_DIR}")
     set(CMAKE_BUILD_RPATH "${SYCL_DIR}/lib")
 endif()
 

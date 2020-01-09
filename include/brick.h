@@ -2,6 +2,7 @@
  * @file
  * @brief Main header for bricks
  */
+
 #ifndef BRICK_H
 #define BRICK_H
 
@@ -123,8 +124,6 @@ struct BrickInfo {
 template<unsigned ... Ds>
 struct Dim {
 };
-
-///
 
 /**
  * @defgroup cal_size Calculate the product of n numbers in a template
@@ -281,7 +280,7 @@ struct _BrickAccessor<T, Dim<D, BDims...>, Dim<F, Folds...>, bool> {
 };
 
 /**
- * @brief When the number of Brick dimensions and Fold dimensions are not the same \f$1 + BDims\f$ > Folds @ref _BrickAccessor
+ * @brief When the number of Brick dimensions and Fold dimensions are not the same \f$1 + BDims > Folds\f$ @ref _BrickAccessor
  * @tparam T Element type
  * @tparam D CAR of brick dimension
  * @tparam BDims CDR of brick dimension

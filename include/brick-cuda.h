@@ -1,6 +1,7 @@
-//
-// Created by Tuowen Zhao on 12/5/18.
-//
+/**
+ * @file
+ * @brief For using bricks with CUDA
+ */
 
 #ifndef BRICK_BRICK_CUDA_H
 #define BRICK_BRICK_CUDA_H
@@ -8,6 +9,9 @@
 #include <brick.h>
 #include <cuda_runtime.h>
 
+/**
+ * @brief Check the return of CUDA calls, do nothing during release build
+ */
 #ifndef NDEBUG
 #define cudaCheck(x) x
 #else
@@ -15,6 +19,7 @@
 #define cudaCheck(x) _cudaCheck(x, #x ,__FILE__, __LINE__)
 #endif
 
+/// Internal for #cudaCheck(x)
 template<typename T>
 void _cudaCheck(T e, const char *func, const char *call, const int line) {
   if (e != cudaSuccess) {
@@ -23,22 +28,35 @@ void _cudaCheck(T e, const char *func, const char *call, const int line) {
   }
 }
 
+/**
+ * @brief Moving BrickInfo to GPU (allocate new)
+ * @tparam dims implicit when used with bInfo argument
+ * @param bInfo BrickInfo to copy from host
+ * @param k Currently must be cudaMemcpyHostToDevice
+ * @return a new BrickInfo struct allocated on the GPU
+ */
 template<unsigned dims>
-BrickInfo<dims> movBrickInfo(BrickInfo<dims> &bInfo, cudaMemcpyKind k) {
+BrickInfo<dims> movBrickInfo(BrickInfo<dims> &bInfo, cudaMemcpyKind kind) {
   // Make a copy
   BrickInfo<dims> ret = bInfo;
   unsigned size = bInfo.nbricks * static_power<3, dims>::value * sizeof(unsigned);
   cudaCheck(cudaMalloc(&ret.adj, size));
-  cudaCheck(cudaMemcpy(ret.adj, bInfo.adj, size, k));
+  cudaCheck(cudaMemcpy(ret.adj, bInfo.adj, size, kind));
   return ret;
 }
 
-inline BrickStorage movBrickStorage(BrickStorage &bStorage, cudaMemcpyKind k) {
+/**
+ * @brief Moving BrickStorage to GPU (allocate new)
+ * @param bStorage BrickStorage to copy from host
+ * @param kind Currently must be cudaMemcpyHostToDevice
+ * @return a new BrickStorage struct allocated on the GPU
+ */
+inline BrickStorage movBrickStorage(BrickStorage &bStorage, cudaMemcpyKind kind) {
   // Make a copy
   BrickStorage ret = bStorage;
   unsigned size = bStorage.step * bStorage.chunks * sizeof(bElem);
   cudaCheck(cudaMalloc(&ret.dat, size));
-  cudaCheck(cudaMemcpy(ret.dat, bStorage.dat, size, k));
+  cudaCheck(cudaMemcpy(ret.dat, bStorage.dat, size, kind));
   return ret;
 }
 

@@ -89,14 +89,6 @@ calc = param[0] * input(i, j, k) + \
 output.assign(calc)
 ~~~
 
-The code generation for brick can be performed with:
-
-~~~python
-brick("b", "AVX512", [4, 2], [output])
-~~~
-
-The code generation for brick
-
 ## Code generation using the library interface
 
 Stencil code includes 3 different parts:
@@ -105,29 +97,21 @@ Stencil code includes 3 different parts:
 * The backend vectorizer
 * The code generation heuristics
 
-The interface to the code generator API works as follows:
+The code generation for brick can be performed with, this will write the code to stdout:
 
 ~~~python
-# Choosing the vectorizer
-backend = BackendAVX512(options ...)
-# Choosing the layout
-layout = Tiled(options ...)
-# Instantiate the code generator
-cg = Codegen(options ...)
-cg.config(backend, layout)
-cg.gencode([...])
+backend = BackendAVX512()
+layout = Brick(dim=[8, 8], fold=[8], prec=2)
+g = CodeGen(backend, layout, dimsplit=True)
+g.gencode([output])
 ~~~
 
-### Configuration ownership
+## Code generation with C++
 
-For each of the three different component certain configurations are owned by each unit, 
-configuration may be shared across unit but are copied from owner.
+Script is ended with stencil expression to generate.
 
-* Layout
-    * Common: Fold, precision
-    * Brick: brick index; Indices?
-    * Tiled: indices and stride for each dimension
-* Backend
-    * Private static configs: Vector length
-* Codegen:
-    * tunables
+~~~python
+STENCIL=[output]
+~~~
+
+See [integration](docs/integration.md).
