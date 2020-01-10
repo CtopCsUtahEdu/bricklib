@@ -13,8 +13,8 @@
 #include "stencils/fake.h"
 
 #include "bitset.h"
-#include "stencils/multiarray.h"
-#include "stencils/brickcompare.h"
+#include <multiarray.h>
+#include <brickcompare.h>
 
 #include <unistd.h>
 

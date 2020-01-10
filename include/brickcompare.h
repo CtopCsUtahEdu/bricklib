@@ -23,7 +23,7 @@ compareBrick(const std::vector<long> &dimlist, const std::vector<long> &padding,
   bool ret = true;
   auto f = [&ret](bElem &brick, const bElem *arr) -> void {
     double diff = std::abs(brick - *arr);
-    bool r = (diff < TOLERANCE) || (diff < (std::abs(brick) + std::abs(*arr)) * TOLERANCE);
+    bool r = (diff < BRICK_TOLERANCE) || (diff < (std::abs(brick) + std::abs(*arr)) * BRICK_TOLERANCE);
     compareBrick_b = (compareBrick_b && r);
   };
 
