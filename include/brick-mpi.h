@@ -1,7 +1,7 @@
 /**
-* @file
-* @brief MPI stuff related to bricks
-*/
+ * @file
+ * @brief MPI stuff related to bricks
+ */
 
 #ifndef BRICK_BRICK_MPI_H
 #define BRICK_BRICK_MPI_H

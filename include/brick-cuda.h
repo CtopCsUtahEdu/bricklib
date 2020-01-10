@@ -32,7 +32,7 @@ void _cudaCheck(T e, const char *func, const char *call, const int line) {
  * @brief Moving BrickInfo to GPU (allocate new)
  * @tparam dims implicit when used with bInfo argument
  * @param bInfo BrickInfo to copy from host
- * @param k Currently must be cudaMemcpyHostToDevice
+ * @param kind Currently must be cudaMemcpyHostToDevice
  * @return a new BrickInfo struct allocated on the GPU
  */
 template<unsigned dims>

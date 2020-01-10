@@ -1,6 +1,7 @@
-//
-// Created by Tuowen Zhao on 11/11/19.
-//
+/**
+ * @file
+ * @brief Header necessary for SYCL program to include
+ */
 
 #ifndef BRICK_BRICK_SYCL_H
 #define BRICK_BRICK_SYCL_H
