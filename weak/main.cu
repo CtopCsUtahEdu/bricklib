@@ -16,7 +16,6 @@
 #include <brickcompare.h>
 #include "stencils/cudaarray.h"
 #include "stencils/gpuvfold.h"
-#include "../include/brick-mpi.h"
 
 #include <unistd.h>
 #include <array-mpi.h>

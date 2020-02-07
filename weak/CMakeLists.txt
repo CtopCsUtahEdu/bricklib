@@ -28,7 +28,8 @@ if(CMAKE_CUDA_COMPILER)
     set_target_properties(weak-cuda
             PROPERTIES OUTPUT_NAME cuda)
 
-    add_executable(weak-cuda-mmap mmap.cu)
+    VSTARGET(C3MPIMMAP mmap.cu ${CMAKE_CURRENT_SOURCE_DIR}/mmap-out.cu)
+    add_executable(weak-cuda-mmap ${VSTARGET_C3MPIMMAP_OUTPUT} args.cpp)
     target_link_libraries(weak-cuda-mmap brick brickhelper ${MPI_CXX_LIBRARIES} rt cuda)
     set_target_properties(weak-cuda-mmap
             PROPERTIES OUTPUT_NAME cuda-mmap)
