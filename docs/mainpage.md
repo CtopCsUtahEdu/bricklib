@@ -29,7 +29,7 @@ Brick layout is flexible, allows flexible domain shapes and enables fast "ghost 
 
 ## Get the Code
 
-Get code from [Github](https://github.com/CtopCsUtahEdu/brick), and start exploring the code documentation here.
+Get code from [Github](https://github.com/CtopCsUtahEdu/bricklib), and start exploring the code documentation here.
 
 ## Acknowledgements
 
