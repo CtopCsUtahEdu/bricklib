@@ -61,7 +61,7 @@ install(DIRECTORY codegen/ DESTINATION lib/${CMAKE_PROJECT_NAME}
 set(PROJECT_INC_DIRS "${PROJECT_SOURCE_DIR}/include")
 
 find_package(Doxygen
-        REQUIRED dot)
+        COMPONENTS dot)
 
 if (DOXYGEN_FOUND)
     configure_file(docs/Doxyfile.in ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
