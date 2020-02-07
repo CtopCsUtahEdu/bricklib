@@ -696,7 +696,7 @@ typedef struct {
  * @return a stats object
  */
 inline mpi_stats mpi_statistics(double stats, MPI_Comm comm) {
-  mpi_stats ret;
+  mpi_stats ret = {0, 0, 0, 0};
   if (comm == MPI_COMM_NULL)
     return ret;
   int size;

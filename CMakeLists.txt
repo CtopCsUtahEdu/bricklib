@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 include(CheckLanguage)
+include(CheckCXXCompilerFlag)
 check_language(CUDA)
 
 if(CMAKE_CUDA_COMPILER)
@@ -21,7 +22,7 @@ find_package(OpenMP REQUIRED)
 find_package(MPI REQUIRED)
 find_package(OpenCL 2.0)
 
-option(HAS_SYCL "Denote compiler that support sycl" ON)
+check_cxx_compiler_flag(-fsycl HAS_SYCL)
 
 if (HAS_SYCL)
     get_filename_component(bin_dir "${CMAKE_CXX_COMPILER}" PATH)
