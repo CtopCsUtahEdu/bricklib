@@ -1,4 +1,4 @@
-# This will compiler for OpenSHMEM in weak/shmem.cpp
+# This will compile for OpenSHMEM in weak/shmem.cpp
 
 CC=oshc++
 
