@@ -1,6 +1,7 @@
-//
-// Created by Tuowen Zhao on 5/30/19.
-//
+/**
+ * @file
+ * @brief Helper data structure for memory file
+ */
 
 #ifndef BRICK_MEMFD_H
 #define BRICK_MEMFD_H

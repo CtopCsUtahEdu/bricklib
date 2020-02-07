@@ -1,3 +1,8 @@
+/**
+ * @file
+ * @brief Brick iterator and setup code
+ */
+
 #ifndef BRICK_SETUP_H
 #define BRICK_SETUP_H
 
@@ -138,7 +143,7 @@ inline void iter(const std::vector<long> &dimlist, const std::vector<long> &tile
 template<unsigned dims, typename F, typename T, unsigned ... BDims>
 inline void
 iter_grid(const std::vector<long> &dimlist, const std::vector<long> &padding, const std::vector<long> &ghost,
-    bElem *arr, unsigned *grid_ptr, Brick<Dim<BDims...>, T> &brick, F f) {
+          bElem *arr, unsigned *grid_ptr, Brick<Dim<BDims...>, T> &brick, F f) {
   std::vector<long> strideA;
   std::vector<long> strideB;
   std::vector<long> tile = {BDims...};
@@ -157,9 +162,21 @@ iter_grid(const std::vector<long> &dimlist, const std::vector<long> &padding, co
   iter<dims, dims>(dimlist, tile, strideA, strideB, padding, ghost, brick, arr, grid_ptr, f, RunningTag());
 }
 
+/**
+ * @brief Copy values from an array to bricks
+ * @tparam dims number of dimensions
+ * @tparam T type for brick
+ * @param dimlist dimensions, contiguous first
+ * @param padding padding applied to array format (skipped)
+ * @param ghost padding applied to array and brick (skipped)
+ * @param arr array input
+ * @param grid_ptr the grid array contains indices of bricks
+ * @param brick the brick data structure
+ */
 template<unsigned dims, typename T>
-inline void copyToBrick(const std::vector<long> &dimlist, const std::vector<long> &padding,
-    const std::vector<long> &ghost, bElem *arr, unsigned *grid_ptr, T &brick) {
+inline void
+copyToBrick(const std::vector<long> &dimlist, const std::vector<long> &padding, const std::vector<long> &ghost,
+            bElem *arr, unsigned *grid_ptr, T &brick) {
   auto f = [](bElem &brick, bElem *arr) -> void {
     brick = *arr;
   };
@@ -167,6 +184,17 @@ inline void copyToBrick(const std::vector<long> &dimlist, const std::vector<long
   iter_grid<dims>(dimlist, padding, ghost, arr, grid_ptr, brick, f);
 }
 
+/**
+ * @brief Copy values from an array to bricks without ghost or padding
+ * @tparam dims
+ * @tparam T
+ * @param dimlist
+ * @param arr
+ * @param grid_ptr
+ * @param brick
+ *
+ * For parameters see copyToBrick(const std::vector<long> &dimlist, const std::vector<long> &padding, const std::vector<long> &ghost, bElem *arr, unsigned *grid_ptr, T &brick)
+ */
 template<unsigned dims, typename T>
 inline void copyToBrick(const std::vector<long> &dimlist, bElem *arr, unsigned *grid_ptr, T &brick) {
   std::vector<long> padding(dimlist.size(), 0);
@@ -175,9 +203,20 @@ inline void copyToBrick(const std::vector<long> &dimlist, bElem *arr, unsigned *
   copyToBrick<dims>(dimlist, padding, ghost, arr, grid_ptr, brick);
 }
 
+/**
+ * @brief Copy values from bricks to an array
+ * @tparam dims number of dimensions
+ * @tparam T type for brick
+ * @param dimlist dimensions, contiguous first
+ * @param padding padding applied to array format (skipped)
+ * @param ghost padding applied to array and brick (skipped)
+ * @param arr array input
+ * @param grid_ptr the grid array contains indices of bricks
+ * @param brick the brick data structure
+ */
 template<unsigned dims, typename T>
 inline void copyFromBrick(const std::vector<long> &dimlist, const std::vector<long> &padding,
-    const std::vector<long> &ghost, bElem *arr, unsigned *grid_ptr, T &brick) {
+                          const std::vector<long> &ghost, bElem *arr, unsigned *grid_ptr, T &brick) {
   auto f = [](bElem &brick, bElem *arr) -> void {
     *arr = brick;
   };

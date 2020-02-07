@@ -1,6 +1,9 @@
-//
-// Created by Tuowen Zhao on 6/14/19.
-//
+/**
+ * @file
+ * @brief Reference MPI communication with arrays
+ *
+ * This includes packing/unpacking and communication with MPI_Types
+ */
 
 #ifndef BRICK_ARRAY_MPI_H
 #define BRICK_ARRAY_MPI_H
@@ -8,6 +11,12 @@
 #include "brick-mpi.h"
 #include <mpi.h>
 
+/**
+ * OpenMP-enabled copy kernel
+ * @param dst destination
+ * @param src source
+ * @param size in number of bElem
+ */
 inline void elemcpy(bElem *dst, const bElem *src, unsigned long size) {
 #pragma omp simd
   for (unsigned long i = 0; i < size; ++i)

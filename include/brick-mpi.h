@@ -1,6 +1,7 @@
-//
-// Created by Tuowen Zhao on 12/10/18.
-//
+/**
+ * @file
+ * @brief MPI stuff related to bricks
+ */
 
 #ifndef BRICK_BRICK_MPI_H
 #define BRICK_BRICK_MPI_H
@@ -21,9 +22,30 @@
 
 extern double packtime, calltime, waittime, movetime, calctime;
 
+/**
+ * @brief Enumerate all neighbors
+ * @param[in] cur usually 0
+ * @param[in] idx current dimension, starts from 1
+ * @param[in] dim total number of dimensions
+ * @param[out] neighbors a list of neighbors
+ */
 void allneighbors(BitSet cur, long idx, long dim, std::vector<BitSet> &neighbors);
 
-// Grid accessor
+/**
+ * @defgroup grid_access Accessing grid indices using []
+ *
+ * It can be fully unrolled and offers very little overhead.
+ *
+ * @{
+ */
+
+
+/**
+ * @brief Generic base template for @ref grid_access
+ * @tparam T type of the BrickDecomp
+ * @tparam dim number of dimensions
+ * @tparam d current dimension
+ */
 template<typename T, unsigned dim, unsigned d>
 struct grid_access;
 
@@ -50,8 +72,13 @@ struct grid_access {
     return grid_access<T, dim, d - 1>(self, ref + i * self->stride[d - 1]);
   }
 };
+/**@}*/
 
-
+/**
+ * @brief PUT view of the ghost and surface region using mmap
+ *
+ * Created from BrickDecomp::exchangeView() for PUT exchange
+ */
 struct ExchangeView {
   MPI_Comm comm;
   std::vector<size_t> seclen;
@@ -61,6 +88,9 @@ struct ExchangeView {
   ExchangeView(MPI_Comm comm, std::vector<size_t> seclen, Dest send, Dest recv) :
       comm(comm), seclen(std::move(seclen)), send(std::move(send)), recv(std::move(recv)) {}
 
+  /**
+   * @brief Exchange all ghost zones
+   */
   void exchange() {
     std::vector<MPI_Request> requests(seclen.size() * 2);
     double st = omp_get_wtime(), ed;
@@ -84,6 +114,11 @@ struct ExchangeView {
   }
 };
 
+/**
+ * @brief SHIFT view of the ghost and surface region using mmap
+ *
+ * Created from BrickDecomp::multiStageExchangeView() for SHIFT exchange
+ */
 struct MultiStageExchangeView {
   MPI_Comm comm;
   typedef struct {
@@ -116,49 +151,50 @@ struct MultiStageExchangeView {
   }
 };
 
-/* This create a decomposition for MPI communication
+/**
+ * @brief Decomposition for MPI communication
+ * @tparam dim number of dimensions
+ * @tparam BDims Brick dimensions
  *
  * Decomposition is setup in steps:
  * 1. Reserve space of the inner-inner region
- * 2. Skin layout of inner region
- * 3. Exchange ghost region location (Segmenting info)
- *  * segment info
- * 4. Setup ghost region
- * 5. All extra ghost link to the end brick
+ * 2. Surface layout of inner region
+ * 3. Setup ghost region
+ * 4. All extra ghost link to the end brick
  */
 template<unsigned dim,
     unsigned ... BDims>
 class BrickDecomp {
 public:
-  // We need to record the start of each of the ghostzones
-  // To identify a ghost region use:
-  // * The set for the neighbor
-  // * The r for the region
-  // To record the start and length of the region use A
-  // Each neighbor can be identified using a map
+  /**
+   * @brief Record start and end of each region
+   */
   typedef struct {
-    BitSet neighbor;
-    unsigned skin_st, skin_ed;
-    unsigned pos, len;
+    BitSet neighbor;     ///< The set for the neighbor
+    unsigned skin_st;    ///< starting elements in the skin list
+    unsigned skin_ed;    ///< ending index in the skin list (not included)
+    unsigned pos;        ///< starting from which brick
+    unsigned len;        ///< ending at which brick (not included)
   } g_region;
-  std::vector<g_region> ghost;
-  std::vector<g_region> skin;
-  unsigned sep_pos[3];
-  std::vector<BitSet> skinlist; // The order of skin
-  std::vector<long> skin_size; // The size of skin
+  std::vector<g_region> ghost;      ///< ghost regions record
+  std::vector<g_region> skin;       ///< surface regions record
+  unsigned sep_pos[3];              ///< seperation points internal-surface-ghost
+  std::vector<BitSet> skinlist;     ///< the order of skin
+  std::vector<long> skin_size;      ///< the size of skin
 private:
-  typedef BrickDecomp<dim, BDims...> mytype;
+  typedef BrickDecomp<dim, BDims...> mytype;    ///< shorthand for type of this instance
 
-  std::vector<unsigned> dims, t_dims;
-  std::vector<unsigned> g_depth; // The depth of ghostzone
-  std::vector<unsigned> stride;
-  unsigned *grid;
-  unsigned numfield;
-  BrickInfo<dim> *bInfo;
+  std::vector<unsigned> dims;       ///< dimension of internal in bricks
+  std::vector<unsigned> t_dims;     ///< dimension including ghosts in bricks
+  std::vector<unsigned> g_depth;    ///< The depth of ghostzone in bricks
+  std::vector<unsigned> stride;     ///< stride in bricks
+  unsigned *grid;                   ///< Grid indices
+  unsigned numfield;                ///< Number of fields that are interleaved
+  BrickInfo<dim> *bInfo;            ///< Associated BrickInfo
 
   template<typename T, unsigned di, unsigned d>
   friend
-  struct grid_access;
+  struct grid_access;               ///< Need private access for @ref grid_access
 
 
   /* Regions can be identified with:
@@ -230,10 +266,16 @@ private:
   }
 
 public:
-  MPI_Comm comm;
+  MPI_Comm comm;        ///< MPI communicator it is attached to
 
-  std::unordered_map<uint64_t, int> rank_map; // Mapping from neighbor to each neighbor's rank
+  std::unordered_map<uint64_t, int> rank_map;        ///< Mapping from neighbor to each neighbor's rank
 
+  /**
+   * @brief MPI decomposition for bricks
+   * @param dims the size of each dimension excluding the ghost (in elements)
+   * @param depth the depths of ghost (in elements)
+   * @param numfield number of interleaved fields
+   */
   BrickDecomp(const std::vector<unsigned> &dims, const unsigned depth, unsigned numfield = 1)
       : dims(dims), numfield(numfield), bInfo(nullptr), grid(nullptr) {
     assert(dims.size() == dim);
@@ -248,6 +290,10 @@ public:
     }
   };
 
+  /**
+   * @brief initialize the decomposition using skinlist
+   * @param skinlist the layout of the surface area, recommended: skin3d_good
+   */
   void initialize(const std::vector<BitSet> &skinlist) {
     calltime = waittime = 0;
     this->skinlist = skinlist;
@@ -360,6 +406,10 @@ public:
       adj_populate(i, bInfo->adj[grid[i]]);
   }
 
+  /**
+   * @brief Minimal PUT exchange without mmap
+   * @param bStorage a brick storage created using this decomposition
+   */
   void exchange(BrickStorage &bStorage) {
     std::vector<MPI_Request> requests(ghost.size() * 2);
     double st = omp_get_wtime(), ed;
@@ -384,12 +434,20 @@ public:
     waittime += ed - st;
   }
 
-
+  /**
+   * @brief @ref grid_access
+   * @param i include padded ghost regions
+   * @return
+   */
   grid_access<mytype, dim, dim - 1> operator[](int i) {
     auto ga = grid_access<mytype, dim, dim>(this, 0);
     return ga[i];
   }
 
+  /**
+   * @brief Access the associated metadata
+   * @return
+   */
   BrickInfo<dim> getBrickInfo() {
     return *bInfo;
   }
@@ -399,6 +457,11 @@ public:
     delete bInfo;
   }
 
+  /**
+   * @brief Create a view for PUT exchange (mmap)
+   * @param bStorage a brick storage created using this decomposition
+   * @return all information needed for exchange
+   */
   ExchangeView exchangeView(BrickStorage bStorage) {
     // All Brick Storage are initialized with mmap for exchanging using views
     assert(bStorage.mmap_info != nullptr);
@@ -447,6 +510,11 @@ public:
     return ExchangeView(comm, seclen, send, recv);
   }
 
+  /**
+   * @brief Create a view for SHIFT exchange (mmap)
+   * @param bStorage a brick storage created using this decomposition
+   * @return all information needed for exchange
+   */
   MultiStageExchangeView multiStageExchangeView(BrickStorage bStorage) {
     // All Brick Storage are initialized with mmap for exchanging using views
     assert(bStorage.mmap_info != nullptr);
@@ -504,7 +572,7 @@ public:
               len += l;
               // The corresponding us part also needs to be exchanged
               // Find the corresponding neighbor
-              BitSet s = g.neighbor ^ n;
+              BitSet s = g.neighbor ^n;
               for (int sec = g.skin_st; sec < g.skin_ed; ++sec)
                 // looking for the corresponding skin part
                 for (auto g2: ghost)
@@ -543,7 +611,11 @@ public:
     return MultiStageExchangeView(comm, send, recv);
   }
 
-  // This only works for same sized domain right now
+  /**
+   * @brief Exchange using MPI_Win (don't use)
+   * @param bStorage
+   * @param win
+   */
   void exchange(BrickStorage bStorage, MPI_Win &win) {
     double st = omp_get_wtime(), ed;
 
@@ -571,6 +643,21 @@ public:
   }
 };
 
+/**
+ * @brief Populate neighbor-rank map for BrickDecomp using MPI_Comm
+ * @tparam dim number of dimensions
+ * @tparam BDims Brick dimensions
+ * @param comm
+ * @param bDecomp
+ * @param neighbor
+ * @param d current dimension
+ * @param coo This rank's coo
+ *
+ * Example:
+ * @code{.cpp}
+ * populate(cart, brickDecomp, 0, 1, coo);
+ * @endcode
+ */
 template<unsigned dim, unsigned ...BDims>
 void populate(MPI_Comm &comm, BrickDecomp<dim, BDims...> &bDecomp, BitSet neighbor, int d, int *coo) {
   if (d > dim) {
@@ -595,12 +682,23 @@ void populate(MPI_Comm &comm, BrickDecomp<dim, BDims...> &bDecomp, BitSet neighb
   coo[d - 1] = c;
 }
 
+/**
+ * @brief Statistics collection for MPI programs
+ */
 typedef struct {
   double min, max, avg, sigma;
 } mpi_stats;
 
+/**
+ * Collect a stats within a certain communicator to its root
+ * @param stats a double represent a stat
+ * @param comm communicator
+ * @return a stats object
+ */
 inline mpi_stats mpi_statistics(double stats, MPI_Comm comm) {
-  mpi_stats ret;
+  mpi_stats ret = {0, 0, 0, 0};
+  if (comm == MPI_COMM_NULL)
+    return ret;
   int size;
   MPI_Comm_size(comm, &size);
   MPI_Reduce(&stats, &ret.avg, 1, MPI_DOUBLE, MPI_SUM, 0, comm);
@@ -616,11 +714,23 @@ inline mpi_stats mpi_statistics(double stats, MPI_Comm comm) {
   return ret;
 }
 
+/**
+ * @brief pretty print an mpi_stats object
+ */
 inline std::ostream &operator<<(std::ostream &os, const mpi_stats &stats) {
   os << "[" << stats.min << ", " << stats.avg << ", " << stats.max << "]" << " (σ: " << stats.sigma << ")";
   return os;
 }
 
-extern std::vector<BitSet> skin3d_good, skin3d_normal, skin3d_bad;
+/**
+ * @brief Optimized surface ordering for 3D
+ *
+ * @code{.cpp}
+ * BrickDecomp<3, 8,8,8> bDecomp({128,128,128}, 8);
+ * bDecomp.initialize(skin3d_good);
+ * @endcode
+ */
+extern std::vector<BitSet> skin3d_good;
+extern std::vector<BitSet> skin3d_normal, skin3d_bad;
 
 #endif //BRICK_BRICK_MPI_H

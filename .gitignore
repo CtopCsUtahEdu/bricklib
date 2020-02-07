@@ -22,3 +22,5 @@ build
 __pycache__/
 *.egg-info
 
+# Compile commands
+compile_commands.json
