@@ -1,5 +1,7 @@
 # Brick Layout for C++
 
+***Distributed Performance-portable Stencil Compuitation - [Documentation@bricks.run](https://bricks.run)***
+
 ## Requirements
 
 * *C++14* compatible compiler
