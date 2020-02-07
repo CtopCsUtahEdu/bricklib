@@ -12,8 +12,8 @@
 #include "stencils/fake.h"
 
 #include "bitset.h"
-#include "stencils/multiarray.h"
-#include "stencils/brickcompare.h"
+#include <multiarray.h>
+#include <brickcompare.h>
 #include "stencils/cudaarray.h"
 #include "stencils/gpuvfold.h"
 #include "../include/brick-mpi.h"

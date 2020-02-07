@@ -7,10 +7,10 @@
 #include <brick.h>
 #include <brick-mpi.h>
 #include <bricksetup.h>
-#include "stencils/brickcompare.h"
+#include <brickcompare.h>
+#include <multiarray.h>
 #include "stencils/stencils.h"
 #include "stencils/fake.h"
-#include "stencils/multiarray.h"
 #include "stencils/cpuvfold.h"
 
 void regular(bElem *in_ptr, bElem *out_ptr) {

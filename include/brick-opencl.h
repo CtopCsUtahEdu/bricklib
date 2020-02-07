@@ -1,9 +1,6 @@
-//
-// Created by Tuowen Zhao on 11/9/19.
-//
-
-/*
- * Header necessary for OpenCL kernel to include
+/**
+ * @file
+ * @brief Header necessary for OpenCL program/kernel to include
  */
 
 #ifndef BRICK_BRICK_OPENCL_H
