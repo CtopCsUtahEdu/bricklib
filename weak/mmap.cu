@@ -143,9 +143,6 @@ int main(int argc, char **argv) {
       cudaEvent_t c_0, c_1;
       cudaEventCreate(&c_0);
       cudaEventCreate(&c_1);
-      // Copy everything back from device
-      double st = omp_get_wtime();
-      movetime += omp_get_wtime() - st;
 #define USE_TYPES
 #ifndef USE_TYPES
       exchangeArr<3>(in_ptr, cart, bDecomp.rank_map, {dom_size[0], dom_size[1], dom_size[2]},
@@ -153,8 +150,6 @@ int main(int argc, char **argv) {
 #else
       exchangeArrTypes<3>(in_ptr_dev, cart, bDecomp.rank_map, stypemap, rtypemap);
 #endif
-      st = omp_get_wtime();
-      movetime += omp_get_wtime() - st;
 
       cudaEventRecord(c_0);
       dim3 block(strideb[0], strideb[1], strideb[2]), thread(TILE, TILE, TILE);
