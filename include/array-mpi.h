@@ -218,24 +218,25 @@ MPI_Datatype pack_type(BitSet neighbor, const std::vector<long> &dimlist, const 
   std::vector<int> size(3), subsize(3), start(3);
   for (int dd = 0; dd < dimlist.size(); ++dd) {
     int d = dimlist.size() - dd - 1;
-    size[d] = dimlist[d] + 2 * (padding[d] + ghost[d]);
-    int dim = dd + 1;
+    size[dd] = dimlist[d] + 2 * (padding[d] + ghost[d]);
+    int dim = d + 1;
     long sec = 0;
     if (neighbor.get(dim)) {
       sec = 1;
-      start[d] = padding[d] + dimlist[d];
+      start[dd] = padding[d] + dimlist[d];
     } else if (neighbor.get(-(int) dim)) {
       sec = -1;
-      start[d] = padding[d] + ghost[d];
+      start[dd] = padding[d] + ghost[d];
     }
     if (sec) {
-      subsize[d] = ghost[d];
+      subsize[dd] = ghost[d];
     } else {
-      subsize[d] = dimlist[d];
-      start[d] = padding[d] + ghost[d];
+      subsize[dd] = dimlist[d];
+      start[dd] = padding[d] + ghost[d];
     }
   }
   MPI_Datatype ret;
+  // Subarray is most contiguous dimension first (largest index)
   MPI_Type_create_subarray(3, size.data(), subsize.data(), start.data(), MPI_ORDER_C, MPI_DOUBLE, &ret);
   return ret;
 }
@@ -245,24 +246,25 @@ MPI_Datatype unpack_type(BitSet neighbor, const std::vector<long> &dimlist, cons
   std::vector<int> size(3), subsize(3), start(3);
   for (int dd = 0; dd < dimlist.size(); ++dd) {
     int d = dimlist.size() - dd - 1;
-    size[d] = dimlist[d] + 2 * (padding[d] + ghost[d]);
-    int dim = dd + 1;
+    size[dd] = dimlist[d] + 2 * (padding[d] + ghost[d]);
+    int dim = d + 1;
     long sec = 0;
     if (neighbor.get(dim)) {
       sec = 1;
-      start[d] = padding[d] + dimlist[d] + ghost[d];
+      start[dd] = padding[d] + dimlist[d] + ghost[d];
     } else if (neighbor.get(-(int) dim)) {
       sec = -1;
-      start[d] = padding[d];
+      start[dd] = padding[d];
     }
     if (sec) {
-      subsize[d] = ghost[d];
+      subsize[dd] = ghost[d];
     } else {
-      subsize[d] = dimlist[d];
-      start[d] = padding[d] + ghost[d];
+      subsize[dd] = dimlist[d];
+      start[dd] = padding[d] + ghost[d];
     }
   }
   MPI_Datatype ret;
+  // Subarray is most contiguous dimension first (largest index)
   MPI_Type_create_subarray(3, size.data(), subsize.data(), start.data(), MPI_ORDER_C, MPI_DOUBLE, &ret);
   return ret;
 }
@@ -276,14 +278,6 @@ void exchangeArrPrepareTypes(std::unordered_map<uint64_t, MPI_Datatype> &stypema
   allneighbors(0, 1, dim, neighbors);
   neighbors.erase(neighbors.begin() + (neighbors.size() / 2));
   std::vector<MPI_Request> requests(neighbors.size() * 2);
-
-  std::vector<unsigned long> arrstride(dimlist.size());
-  unsigned long stri = 1;
-
-  for (int i = 0; i < arrstride.size(); ++i) {
-    arrstride[i] = stri;
-    stri = stri * ((padding[i] + ghost[i]) * 2 + dimlist[i]);
-  }
 
   for (int i = 0; i < (int) neighbors.size(); ++i) {
     MPI_Datatype MPI_rtype = unpack_type(neighbors[i], dimlist, padding, ghost);

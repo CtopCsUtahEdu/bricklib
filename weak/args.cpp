@@ -120,8 +120,8 @@ MPI_Comm parseArgs(int argc, char **argv, const char *program) {
       for (int i = 0; i < 3; ++i) {
         tot_elems *= dom_size[i];
         dom_size[i] = dom_size[i] / TILE;
-        unsigned s = (unsigned) dom_size[i] % dim_size[i];
-        dom_size[i] = (dom_size[i] / dim_size[i] + (s > coo[i] ? 1 : 0)) * TILE;
+        unsigned s = (unsigned) dom_size[i] % dim_size[2 - i];
+        dom_size[i] = (dom_size[i] / dim_size[2 - i] + (s > coo[i] ? 1 : 0)) * TILE;
       }
     } else {
       tot_elems = size;
