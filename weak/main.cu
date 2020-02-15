@@ -87,8 +87,13 @@ int main(int argc, char **argv) {
     auto bSize = cal_size<BDIM>::value;
     bDecomp.initialize(skin3d_good);
     BrickInfo<3> bInfo = bDecomp.getBrickInfo();
+#ifdef DECOMP_PAGEUNALIGN
     auto bStorage = bInfo.allocate(bSize);
     auto bStorageOut = bInfo.allocate(bSize);
+#else
+    auto bStorage = bInfo.mmap_alloc(bSize);
+    auto bStorageOut = bInfo.mmap_alloc(bSize);
+#endif
 
     auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * strideb[2] * strideb[1] * strideb[0]);
     auto grid = (unsigned (*)[strideb[1]][strideb[0]]) grid_ptr;
@@ -237,6 +242,10 @@ int main(int argc, char **argv) {
       copyToDevice({3}, grid_stride_dev, grid_stride_tmp);
     }
 
+#ifndef DECOMP_PAGEUNALIGN
+    ExchangeView ev = bDecomp.exchangeView(bStorage);
+#endif
+
     auto brick_func = [&]() -> void {
       float elapsed;
       cudaEvent_t c_0, c_1;
@@ -251,7 +260,11 @@ int main(int argc, char **argv) {
                    cudaMemcpyDeviceToHost);
         double t_b = omp_get_wtime();
         movetime += t_b - t_a;
+#ifdef DECOMP_PAGEUNALIGN
         bDecomp.exchange(bStorage);
+#else
+        ev.exchange();
+#endif
         t_a = omp_get_wtime();
         cudaMemcpy(bStorage_dev.dat + bStorage.step * bDecomp.sep_pos[1],
                    bStorage.dat + bStorage.step * bDecomp.sep_pos[1],
@@ -312,10 +325,17 @@ int main(int argc, char **argv) {
       throw std::runtime_error("result mismatch!");
 
     free(bInfo.adj);
+    
     free(out_ptr);
     free(in_ptr);
 
+#ifdef DECOMP_PAGEUNALIGN
     free(bStorage.dat);
+    free(bStorageOut.dat);
+#else
+    ((MEMFD *) bStorage.mmap_info)->cleanup();
+    ((MEMFD *) bStorageOut.mmap_info)->cleanup();
+#endif
     cudaFree(bStorage_dev.dat);
     cudaFree(bStorageOut_dev.dat);
   }

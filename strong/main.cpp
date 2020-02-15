@@ -9,7 +9,6 @@
 #include <brick-mpi.h>
 #include <array-mpi.h>
 #include <bricksetup.h>
-#include <immintrin.h>
 #include <zmort.h>
 #include <map>
 #include "stencils/fake.h"
