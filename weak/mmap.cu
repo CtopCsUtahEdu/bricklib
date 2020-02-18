@@ -1,6 +1,6 @@
 //
 // Created by Tuowen Zhao on 2/17/19.
-// Deprecated: doesn't perform, might need fixes to work
+// Experiments using unified memory (through ATS)
 //
 
 #include <mpi.h>
@@ -126,30 +126,30 @@ int main(int argc, char **argv) {
       copyToDevice({3}, arr_stride_dev, arr_stride_tmp);
     }
 
-    bElem *in_ptr_dev = nullptr;
-    bElem *out_ptr_dev = nullptr;
-
-    copyToDevice(stride, in_ptr_dev, in_ptr);
-    copyToDevice(stride, out_ptr_dev, out_ptr);
+    bElem *in_ptr_dev = in_ptr;
+    bElem *out_ptr_dev = out_ptr;
 
     size_t tsize = 0;
     for (int i = 0; i < bDecomp.ghost.size(); ++i)
       tsize += bDecomp.ghost[i].len * bStorage.step * sizeof(bElem) * 2;
+
+    std::unordered_map<uint64_t, MPI_Datatype> stypemap;
+    std::unordered_map<uint64_t, MPI_Datatype> rtypemap;
+    exchangeArrPrepareTypes<3>(stypemap, rtypemap, {dom_size[0], dom_size[1], dom_size[2]},
+                               {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
 
     auto arr_func = [&]() -> void {
       float elapsed;
       cudaEvent_t c_0, c_1;
       cudaEventCreate(&c_0);
       cudaEventCreate(&c_1);
-      // Copy everything back from device
-      double st = omp_get_wtime();
-      copyFromDevice(stride, in_ptr, in_ptr_dev);
-      movetime += omp_get_wtime() - st;
+#define USE_TYPES
+#ifndef USE_TYPES
       exchangeArr<3>(in_ptr, cart, bDecomp.rank_map, {dom_size[0], dom_size[1], dom_size[2]},
                      {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
-      st = omp_get_wtime();
-      copyToDevice(stride, in_ptr_dev, in_ptr);
-      movetime += omp_get_wtime() - st;
+#else
+      exchangeArrTypes<3>(in_ptr_dev, cart, bDecomp.rank_map, stypemap, rtypemap);
+#endif
 
       cudaEventRecord(c_0);
       dim3 block(strideb[0], strideb[1], strideb[2]), thread(TILE, TILE, TILE);
@@ -170,9 +170,6 @@ int main(int argc, char **argv) {
 
     total = time_mpi(arr_func, cnt, bDecomp);
     cnt *= ST_ITER;
-
-    // Copy back
-    copyFromDevice(stride, out_ptr, out_ptr_dev);
 
     {
       mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);

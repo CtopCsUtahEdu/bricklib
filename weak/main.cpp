@@ -8,7 +8,6 @@
 #include <brick-mpi.h>
 #include <array-mpi.h>
 #include <bricksetup.h>
-#include <immintrin.h>
 #include "stencils/stencils.h"
 #include "stencils/fake.h"
 
@@ -213,7 +212,7 @@ int main(int argc, char **argv) {
 
         std::cout << "calc " << calc_s << std::endl;
         std::cout << "pack " << pack_s << std::endl;
-        std::cout << "  | Pack speed (GB/s): " << pack_s << std::endl;
+        std::cout << "  | Pack speed (GB/s): " << pspd_s << std::endl;
         std::cout << "call " << call_s << std::endl;
         std::cout << "wait " << wait_s << std::endl;
         std::cout << "  | MPI size (MB): " << size_s << std::endl;

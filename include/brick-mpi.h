@@ -667,19 +667,20 @@ void populate(MPI_Comm &comm, BrickDecomp<dim, BDims...> &bDecomp, BitSet neighb
     return;
   }
 
-  int c = coo[d - 1];
+  int dd = dim - d;
+  int c = coo[dd];
   neighbor.flip(d);
-  coo[d - 1] = c - 1;
+  coo[dd] = c - 1;
   populate(comm, bDecomp, neighbor, d + 1, coo);
   neighbor.flip(d);
   // Not picked
-  coo[d - 1] = c;
+  coo[dd] = c;
   populate(comm, bDecomp, neighbor, d + 1, coo);
   // Picked -
   neighbor.flip(-d);
-  coo[d - 1] = c + 1;
+  coo[dd] = c + 1;
   populate(comm, bDecomp, neighbor, d + 1, coo);
-  coo[d - 1] = c;
+  coo[dd] = c;
 }
 
 /**

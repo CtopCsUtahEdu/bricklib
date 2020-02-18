@@ -3,7 +3,7 @@ project(brick
         VERSION 0.1
         LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
@@ -14,7 +14,7 @@ check_language(CUDA)
 
 if (CMAKE_CUDA_COMPILER)
     enable_language(CUDA)
-    set(CMAKE_CUDA_STANDARD 11)
+    set(CMAKE_CUDA_STANDARD ${CMAKE_CXX_STANDARD})
     set(CMAKE_CUDA_SEPARABLE_COMPILATION OFF)
 endif ()
 
@@ -35,7 +35,21 @@ endif ()
 
 include(VecScatter)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS} -march=native")
+check_cxx_compiler_flag(-march=native HAS_MARCH)
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+if (HAS_MARCH)
+    message(STATUS "Using march=native")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+else()
+    # Work around Summit only have mcpu flag
+    check_cxx_compiler_flag(-mcpu=native HAS_MCPU)
+    if (HAS_MCPU)
+        message(STATUS "Using mcpu=native")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native")
+    endif()
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${CMAKE_CXX_FLAGS}\"")
 
 include_directories(

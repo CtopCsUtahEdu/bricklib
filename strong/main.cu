@@ -88,22 +88,32 @@ __global__ void cudaCopy(RegionLink *rl) {
     to[x] = from[x];
 }
 
-__device__ inline void
-brick_subdomain_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D &out, Brick3D &in) {
+__global__ void
+brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx, int inIdx) {
+  unsigned s = blockIdx.x / strideb;
+
   unsigned bk = blockIdx.z;
   unsigned bj = blockIdx.y;
   unsigned bi = blockIdx.x % strideb;
 
   unsigned b = grid_ptr[bi + (bj + bk * strideb) * strideb];
 
+  Brick3D &out = barr[s * 2 + outIdx];
+  Brick3D &in = barr[s * 2 + inIdx];
+
   brick(ST_SCRTPT, VSVEC, (BDIM), (VFOLD), b);
 }
 
+// When it only contains a single domain remove the brick pointer to improve performance
 __global__ void
-brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int out, int in) {
-  unsigned s = blockIdx.x / strideb;
+brick_kernel_single_domain(unsigned *grid, Brick3D in, Brick3D out, unsigned strideb) {
+  unsigned bk = blockIdx.z;
+  unsigned bj = blockIdx.y;
+  unsigned bi = blockIdx.x;
 
-  brick_subdomain_kernel(grid_ptr, strideb, barr[s * 2 + out], barr[s * 2 + in]);
+  unsigned b = grid[bi + (bj + bk * strideb) * strideb];
+
+  brick(ST_SCRTPT, VSVEC, (BDIM), (VFOLD), b);
 }
 
 int main(int argc, char **argv) {
@@ -382,7 +392,7 @@ int main(int argc, char **argv) {
   }
   copyToDevice({(long) unpack_links.size()}, unpack_l_dev, unpack_links.data());
 
-  auto brick_func = [&grid_dev_ptr, &sendViews, &sendReg, &recvViews, &recvReg,
+  auto brick_func = [&grid_dev_ptr, &sendViews, &sendReg, &recvViews, &recvReg, &bricks_dev_vec,
       &bricks_dev, &links, &local_l_dev, &pack_links, &pack_l_dev, &unpack_links, &unpack_l_dev]() -> void {
     float elapsed;
     double t_a = omp_get_wtime();
@@ -443,10 +453,16 @@ int main(int argc, char **argv) {
     }
     cudaEventRecord(c_1);
     dim3 block(STRIDEB * (mysec_r - mysec_l), STRIDEB, STRIDEB), thread(32);
-    for (int i = 0; i < ST_ITER / 2; ++i) {
-      brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 1, 0);
-      brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 0, 1);
-    }
+    if (mysec_r - mysec_l > 1)
+      for (int i = 0; i < ST_ITER / 2; ++i) {
+        brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 1, 0);
+        brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 0, 1);
+      }
+    else
+      for (int i = 0; i < ST_ITER / 2; ++i) {
+        brick_kernel_single_domain<< < block, thread >> > (grid_dev_ptr, bricks_dev_vec[0], bricks_dev_vec[1], STRIDEB);
+        brick_kernel_single_domain<< < block, thread >> > (grid_dev_ptr, bricks_dev_vec[1], bricks_dev_vec[0], STRIDEB);
+      }
     cudaEventRecord(c_2);
     // Pack
     {
