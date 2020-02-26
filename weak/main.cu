@@ -22,8 +22,6 @@
 
 #include "args.h"
 
-#define CUDA_AWARE
-
 typedef Brick<Dim<BDIM>, Dim<VFOLD>> Brick3D;
 
 __global__ void
@@ -137,8 +135,8 @@ int main(int argc, char **argv) {
     copyToDevice(stride, out_ptr_dev, out_ptr);
 
     size_t tsize = 0;
-    for (int i = 0; i < bDecomp.ghost.size(); ++i)
-      tsize += bDecomp.ghost[i].len * bStorage.step * sizeof(bElem) * 2;
+    for (auto &g: bDecomp.ghost)
+      tsize += g.len * bStorage.step * sizeof(bElem) * 2;
 
     std::unordered_map<uint64_t, MPI_Datatype> stypemap;
     std::unordered_map<uint64_t, MPI_Datatype> rtypemap;
@@ -149,7 +147,7 @@ int main(int argc, char **argv) {
       cudaEvent_t c_0, c_1;
       cudaEventCreate(&c_0);
       cudaEventCreate(&c_1);
-#ifndef CUDA_AWARE
+#if !defined(CUDA_AWARE) || !defined(USE_TYPES)
       // Copy everything back from device
       double st = omp_get_wtime();
       copyFromDevice(stride, in_ptr, in_ptr_dev);

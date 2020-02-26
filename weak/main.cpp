@@ -130,14 +130,23 @@ int main(int argc, char **argv) {
     exchangeArrPrepareTypes<3>(stypemap, rtypemap, {dom_size[0], dom_size[1], dom_size[2]},
                         {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
     auto arr_func = [&]() -> void {
+#ifdef USE_TYPES
       exchangeArrTypes<3>(in_ptr, cart, bDecomp.rank_map, stypemap, rtypemap);
+#else
+      exchangeArr<3>(out_ptr, cart, bDecomp.rank_map, {dom_size[0], dom_size[1], dom_size[2]},
+                     {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
+#endif
 #ifdef MPI_49PT
       double t_a = omp_get_wtime();
       array_stencil(out_ptr, in_ptr, TILE);
       double t_b = omp_get_wtime();
       calctime += t_b - t_a;
+#ifdef USE_TYPES
+      exchangeArrTypes<3>(out_ptr, cart, bDecomp.rank_map, stypemap, rtypemap);
+#else
       exchangeArr<3>(out_ptr, cart, bDecomp.rank_map, {dom_size[0], dom_size[1], dom_size[2]},
                      {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
+#endif
       t_a = omp_get_wtime();
       array_stencil(in_ptr, out_ptr, TILE);
       t_b = omp_get_wtime();

@@ -143,12 +143,11 @@ int main(int argc, char **argv) {
       cudaEvent_t c_0, c_1;
       cudaEventCreate(&c_0);
       cudaEventCreate(&c_1);
-#define USE_TYPES
-#ifndef USE_TYPES
+#ifdef USE_TYPES
+      exchangeArrTypes<3>(in_ptr_dev, cart, bDecomp.rank_map, stypemap, rtypemap);
+#else
       exchangeArr<3>(in_ptr, cart, bDecomp.rank_map, {dom_size[0], dom_size[1], dom_size[2]},
                      {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
-#else
-      exchangeArrTypes<3>(in_ptr_dev, cart, bDecomp.rank_map, stypemap, rtypemap);
 #endif
 
       cudaEventRecord(c_0);
