@@ -5,9 +5,16 @@
 #ifndef BRICK_CPUVFOLD_H
 #define BRICK_CPUVFOLD_H
 
-#ifdef __AVX__
+#ifdef __AVX512__
 
-// Setting for X86 with at least AVX support
+// Setting for X86 with at least AVX512 support
+#include <immintrin.h>
+#define VSVEC "AVX512"
+#define VFOLD 8
+
+#elif defined(__AVX2__)
+
+// Setting for X86 with at least AVX2 support
 #include <immintrin.h>
 #define VSVEC "AVX2"
 #define VFOLD 2,2

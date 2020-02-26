@@ -22,6 +22,33 @@ find_package(OpenMP REQUIRED)
 find_package(MPI REQUIRED)
 find_package(OpenCL 2.0)
 
+option(USE_MEMFD "Using memfd instead of shm_open, supported on Linux >= 3.17 with \"CONFIG_MEMFD_CREATE\"" OFF)
+if (USE_MEMFD)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_MEMFD")
+endif()
+
+option(CUDA_AWARE "Use CUDA_AWARE communication" ON)
+if (CUDA_AWARE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDA_AWARE")
+endif()
+
+option(USE_TYPES "Use MPI_TYPES" OFF)
+if (USE_TYPES)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TYPES")
+endif()
+
+option(HAS_HMM "Use ATS/HMM for CUDA (not-used)" OFF)
+
+# MacOS doesn't have librt
+# shm_open is recommended to link with -lrt (man page)
+find_library(LIBRT rt)
+if (LIBRT)
+    message(STATUS "LIBRT ${LIBRT}")
+else()
+    message(STATUS "LIBRT not found, assuming its a Mac")
+    set(LIBRT "")
+endif()
+
 check_cxx_compiler_flag(-fsycl HAS_SYCL)
 
 if (HAS_SYCL)
@@ -33,10 +60,14 @@ if (HAS_SYCL)
     set(CMAKE_BUILD_RPATH "${SYCL_DIR}/lib")
 endif ()
 
+set(VS_PREPROCESSOR cpp CACHE STRING "Preprocessor for vector scatter")
+
 include(VecScatter)
 
+# Avoid using O2
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
+
 check_cxx_compiler_flag(-march=native HAS_MARCH)
-set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 if (HAS_MARCH)
     message(STATUS "Using march=native")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")

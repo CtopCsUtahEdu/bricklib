@@ -43,7 +43,7 @@ if __name__ == "__main__":
     dst = arg.output
 
     # clean compiler specific options
-    cppargv = [arg for arg in sys.argv[(idx + 1):] if arg[0] == '-' and arg[1].isupper()]
+    cppargv = [arg for arg in sys.argv[(idx + 1):] if arg[0] == '-' and (arg[1].isupper() or arg[1] in 'm')]
 
     args = [CPP, '-x', 'c++', src] + cppargv
 

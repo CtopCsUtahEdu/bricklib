@@ -30,8 +30,6 @@
 #define STRIDE (sdom_size + 2 * GZ)
 #define STRIDEB (STRIDE / TILE)
 
-#define CUDA_AWARE
-
 typedef Brick<Dim<BDIM>, Dim<VFOLD>> Brick3D;
 
 struct Subdomain {

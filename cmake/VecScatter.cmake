@@ -15,7 +15,7 @@ macro(VSTARGET Name Input Output)
     endforeach ()
     string(REPLACE " " ";" CMAKE_CXX_FLAGS_LIST ${CMAKE_CXX_FLAGS})
     add_custom_command(OUTPUT ${Output}
-            COMMAND ${CMAKE_COMMAND} -E env ${Python_EXECUTABLE} ${VecScatter_SCRIPT} ${Input} ${Output} -- ${CMAKE_CXX_FLAGS_LIST} ${${Name}_COMPILE_OPTIONS} ${VSTARGET_INC}
+            COMMAND ${CMAKE_COMMAND} -E env VSCPP=${VS_PREPROCESSOR} ${Python_EXECUTABLE} ${VecScatter_SCRIPT} ${Input} ${Output} -- ${CMAKE_CXX_FLAGS_LIST} ${${Name}_COMPILE_OPTIONS} ${VSTARGET_INC}
             VERBATIM
             MAIN_DEPENDENCY ${Input}
             COMMENT "[VS][${Name}] Vector Scatter transformation"
