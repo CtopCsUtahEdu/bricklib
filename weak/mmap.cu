@@ -126,7 +126,6 @@ int main(int argc, char **argv) {
       copyToDevice({3}, arr_stride_dev, arr_stride_tmp);
     }
 
-    bElem *in_ptr_dev = in_ptr;
     bElem *out_ptr_dev = out_ptr;
 
     size_t tsize = 0;

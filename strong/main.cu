@@ -392,6 +392,10 @@ int main(int argc, char **argv) {
 
   auto brick_func = [&grid_dev_ptr, &sendViews, &sendReg, &recvViews, &recvReg, &bricks_dev_vec,
       &bricks_dev, &links, &local_l_dev, &pack_links, &pack_l_dev, &unpack_links, &unpack_l_dev]() -> void {
+#ifdef BARRIER_TIMESTEP
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
+
     float elapsed;
     double t_a = omp_get_wtime();
     cudaEvent_t c_0, c_1, c_2, c_3;

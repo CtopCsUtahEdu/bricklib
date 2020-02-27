@@ -328,6 +328,10 @@ int main(int argc, char **argv) {
   };
 
   auto brick_func = [&]() -> void {
+#ifdef BARRIER_TIMESTEP
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
+
     double t_a = omp_get_wtime();
 
     std::vector<MPI_Request> requests(recvViews.size() + sendViews.size());

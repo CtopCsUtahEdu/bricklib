@@ -37,6 +37,11 @@ if (USE_TYPES)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TYPES")
 endif()
 
+option(BARRIER_TIMESTEP "Use barrier to reduce timing variation" ON)
+if (BARRIER_TIMESTEP)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBARRIER_TIMESTEP")
+endif()
+
 option(HAS_HMM "Use ATS/HMM for CUDA (not-used)" OFF)
 
 # MacOS doesn't have librt

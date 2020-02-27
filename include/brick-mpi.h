@@ -93,6 +93,11 @@ struct ExchangeView {
    */
   void exchange() {
     std::vector<MPI_Request> requests(seclen.size() * 2);
+
+#ifdef BARRIER_TIMESTEP
+    MPI_Barrier(comm);
+#endif
+
     double st = omp_get_wtime(), ed;
 
     for (int i = 0; i < seclen.size(); ++i) {
@@ -133,11 +138,15 @@ struct MultiStageExchangeView {
       comm(comm), send(std::move(send)), recv(std::move(recv)) {}
 
   void exchange() {
+
+#ifdef BARRIER_TIMESTEP
+    MPI_Barrier(comm);
+#endif
+
     double st = omp_get_wtime(), wtime = 0;
     for (long i = 0; i < send.size(); ++i) {
       std::vector<MPI_Request> requests(send[i].size() + recv[i].size());
       for (long j = 0; j < recv[i].size(); ++j)
-        // TODO TAG might be a problem
         MPI_Irecv(recv[i][j].buf, recv[i][j].len, MPI_CHAR, recv[i][j].rank, j, comm, &(requests[j]));
       for (long j = 0; j < send[i].size(); ++j)
         MPI_Isend(send[i][j].buf, send[i][j].len, MPI_CHAR, send[i][j].rank, j, comm, &(requests[recv[i].size() + j]));
@@ -412,6 +421,11 @@ public:
    */
   void exchange(BrickStorage &bStorage) {
     std::vector<MPI_Request> requests(ghost.size() * 2);
+
+#ifdef BARRIER_TIMESTEP
+    MPI_Barrier(comm);
+#endif
+
     double st = omp_get_wtime(), ed;
 
     for (int i = 0; i < ghost.size(); ++i) {
