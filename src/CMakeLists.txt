@@ -1,4 +1,4 @@
-add_library(brick brick-mpi.cpp memfd.cpp)
+add_library(brick brick-mpi.cpp memfd.cpp array-mpi.cpp)
 install(TARGETS brick
         RUNTIME DESTINATION lib)
 

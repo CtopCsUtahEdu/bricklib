@@ -93,6 +93,7 @@ struct ExchangeView {
    */
   void exchange() {
     std::vector<MPI_Request> requests(seclen.size() * 2);
+    std::vector<MPI_Status> stats(requests.size());
 
 #ifdef BARRIER_TIMESTEP
     MPI_Barrier(comm);
@@ -111,7 +112,6 @@ struct ExchangeView {
     calltime += ed - st;
     st = ed;
 
-    std::vector<MPI_Status> stats(requests.size());
     MPI_Waitall(static_cast<int>(requests.size()), requests.data(), stats.data());
 
     ed = omp_get_wtime();
@@ -421,6 +421,7 @@ public:
    */
   void exchange(BrickStorage &bStorage) {
     std::vector<MPI_Request> requests(ghost.size() * 2);
+    std::vector<MPI_Status> stats(requests.size());
 
 #ifdef BARRIER_TIMESTEP
     MPI_Barrier(comm);
@@ -441,7 +442,6 @@ public:
     calltime += ed - st;
     st = ed;
 
-    std::vector<MPI_Status> stats(requests.size());
     MPI_Waitall(static_cast<int>(requests.size()), requests.data(), stats.data());
 
     ed = omp_get_wtime();

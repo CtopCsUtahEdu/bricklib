@@ -138,6 +138,9 @@ evalsize(BitSet region, const std::vector<long> &dimlist, const std::vector<long
   return size;
 }
 
+extern std::vector<bElem *> arr_buffers_out;
+extern std::vector<bElem *> arr_buffers_recv;
+
 // ID is used to prevent message mismatch from messages with the same node, low performance only for validation testing.
 template<unsigned dim>
 void exchangeArr(bElem *arr, const MPI_Comm &comm, std::unordered_map<uint64_t, int> &rank_map,
@@ -145,10 +148,9 @@ void exchangeArr(bElem *arr, const MPI_Comm &comm, std::unordered_map<uint64_t, 
   std::vector<BitSet> neighbors;
   allneighbors(0, 1, dim, neighbors);
   neighbors.erase(neighbors.begin() + (neighbors.size() / 2));
-  std::vector<bElem *> buffers_out(neighbors.size(), nullptr);
-  std::vector<bElem *> buffers_recv(neighbors.size(), nullptr);
   std::vector<unsigned long> tot(neighbors.size());
   std::vector<MPI_Request> requests(neighbors.size() * 2);
+  std::vector<MPI_Status> stats(requests.size());
 
   std::vector<unsigned long> arrstride(dimlist.size());
   unsigned long stri = 1;
@@ -160,15 +162,19 @@ void exchangeArr(bElem *arr, const MPI_Comm &comm, std::unordered_map<uint64_t, 
 
   for (int i = 0; i < (int) neighbors.size(); ++i) {
     tot[i] = (unsigned long) evalsize(neighbors[i], dimlist, ghost, false);
-    buffers_recv[i] = new bElem[tot[i]];
-    buffers_out[i] = new bElem[tot[i]];
   }
+
+  if (!arr_buffers_out[0])
+    for (int i = 0; i < (int) neighbors.size(); ++i) {
+      arr_buffers_recv[i] = (bElem*)aligned_alloc(4096, sizeof(bElem) * tot[i]);
+      arr_buffers_out[i] = (bElem*)aligned_alloc(4096, sizeof(bElem) * tot[i]);
+    }
 
   double st = omp_get_wtime(), ed;
   // Pack
 #pragma omp parallel for
   for (int i = 0; i < (int) neighbors.size(); ++i)
-    pack<dim>(arr, neighbors[i], buffers_out[i], arrstride, dimlist, padding, ghost);
+    pack<dim>(arr, neighbors[i], arr_buffers_out[i], arrstride, dimlist, padding, ghost);
 
   ed = omp_get_wtime();
   packtime += ed - st;
@@ -180,9 +186,9 @@ void exchangeArr(bElem *arr, const MPI_Comm &comm, std::unordered_map<uint64_t, 
   st = omp_get_wtime();
 
   for (int i = 0; i < (int) neighbors.size(); ++i) {
-    MPI_Irecv(buffers_recv[i], (int) (tot[i] * sizeof(bElem)), MPI_CHAR, rank_map[neighbors[i].set],
+    MPI_Irecv(arr_buffers_recv[i], (int) (tot[i] * sizeof(bElem)), MPI_CHAR, rank_map[neighbors[i].set],
               (int) neighbors.size() - i - 1, comm, &(requests[i * 2]));
-    MPI_Isend(buffers_out[i], (int) (tot[i] * sizeof(bElem)), MPI_CHAR, rank_map[neighbors[i].set], i, comm,
+    MPI_Isend(arr_buffers_out[i], (int) (tot[i] * sizeof(bElem)), MPI_CHAR, rank_map[neighbors[i].set], i, comm,
               &(requests[i * 2 + 1]));
   }
 
@@ -191,7 +197,6 @@ void exchangeArr(bElem *arr, const MPI_Comm &comm, std::unordered_map<uint64_t, 
   st = ed;
 
   // Wait
-  std::vector<MPI_Status> stats(requests.size());
   MPI_Waitall(static_cast<int>(requests.size()), requests.data(), stats.data());
 
   ed = omp_get_wtime();
@@ -201,19 +206,13 @@ void exchangeArr(bElem *arr, const MPI_Comm &comm, std::unordered_map<uint64_t, 
   // Unpack
 #pragma omp parallel for
   for (int i = 0; i < (int) neighbors.size(); ++i)
-    unpack<dim>(arr, neighbors[i], buffers_recv[i], arrstride, dimlist, padding, ghost);
+    unpack<dim>(arr, neighbors[i], arr_buffers_recv[i], arrstride, dimlist, padding, ghost);
 
   ed = omp_get_wtime();
   packtime += ed - st;
-
-  // Cleanup
-  for (auto b: buffers_out)
-    delete[] b;
-  for (auto b: buffers_recv)
-    delete[] b;
 }
 
-MPI_Datatype pack_type(BitSet neighbor, const std::vector<long> &dimlist, const std::vector<long> &padding,
+inline MPI_Datatype pack_type(BitSet neighbor, const std::vector<long> &dimlist, const std::vector<long> &padding,
                        const std::vector<long> &ghost) {
   std::vector<int> size(3), subsize(3), start(3);
   for (long dd = 0; dd < dimlist.size(); ++dd) {
@@ -241,7 +240,7 @@ MPI_Datatype pack_type(BitSet neighbor, const std::vector<long> &dimlist, const 
   return ret;
 }
 
-MPI_Datatype unpack_type(BitSet neighbor, const std::vector<long> &dimlist, const std::vector<long> &padding,
+inline MPI_Datatype unpack_type(BitSet neighbor, const std::vector<long> &dimlist, const std::vector<long> &padding,
                          const std::vector<long> &ghost) {
   std::vector<int> size(3), subsize(3), start(3);
   for (long dd = 0; dd < dimlist.size(); ++dd) {
