@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
 #ifdef USE_TYPES
       exchangeArrTypes<3>(in_ptr, cart, bDecomp.rank_map, stypemap, rtypemap);
 #else
-      exchangeArr<3>(out_ptr, cart, bDecomp.rank_map, {dom_size[0], dom_size[1], dom_size[2]},
+      exchangeArr<3>(in_ptr, cart, bDecomp.rank_map, {dom_size[0], dom_size[1], dom_size[2]},
                      {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
 #endif
 #ifdef MPI_49PT
@@ -201,8 +201,8 @@ int main(int argc, char **argv) {
     double total;
 
     size_t tsize = 0;
-    for (int i = 0; i < bDecomp.ghost.size(); ++i)
-      tsize += bDecomp.ghost[i].len * bStorage.step * sizeof(bElem) * 2;
+    for (auto g: bDecomp.ghost)
+      tsize += g.len * bStorage.step * sizeof(bElem) * 2;
 
     {
       total = time_mpi(arr_func, cnt, bDecomp);
