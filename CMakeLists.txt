@@ -37,7 +37,7 @@ if (USE_TYPES)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TYPES")
 endif()
 
-option(BARRIER_TIMESTEP "Use barrier to reduce timing variation" ON)
+option(BARRIER_TIMESTEP "Use barrier to reduce timing variation" OFF)
 if (BARRIER_TIMESTEP)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBARRIER_TIMESTEP")
 endif()

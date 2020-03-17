@@ -365,7 +365,7 @@ int main(int argc, char **argv) {
   };
 
   int cnt;
-  double total = time_mpi(brick_func, cnt, bDecomp);
+  double tot = time_mpi(brick_func, cnt, bDecomp);
   cnt *= ST_ITER;
   size_t tsize = 0;
   for (auto &sview:sendViews)
@@ -378,10 +378,10 @@ int main(int argc, char **argv) {
   mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
   mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
   mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
-  total = calc_s.avg + wait_s.avg + call_s.avg;
+  double total = calc_s.avg + wait_s.avg + call_s.avg;
 
   if (rank == 0) {
-    std::cout << "Bri: " << total << std::endl;
+    std::cout << "Bri: " << total << " : " << tot / ST_ITER << std::endl;
 
     std::cout << "calc : " << calc_s << std::endl;
     std::cout << "call : " << call_s << std::endl;

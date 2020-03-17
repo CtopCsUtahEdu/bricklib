@@ -21,7 +21,7 @@
 #define MPI_B1 0.07
 #define MPI_B2 0.03
 
-#define MPI_13PT
+#define MPI_7PT
 
 #ifdef MPI_49PT
 #define ST_SCRTPT "../stencils/mpi49pt.py"
@@ -88,8 +88,8 @@
 
 template<unsigned n>
 inline void add_brick(bElem *in, bElem *out) {
-  out = (bElem*) __builtin_assume_aligned(out, 64);
-  in = (bElem*)__builtin_assume_aligned(in, 64);
+  out = (bElem *) __builtin_assume_aligned(out, 64);
+  in = (bElem *) __builtin_assume_aligned(in, 64);
 #pragma omp simd
   for (unsigned i = 0; i < n; ++i)
     out[i] += in[i];

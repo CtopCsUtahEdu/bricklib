@@ -87,7 +87,7 @@ void *MEMFD::packed_pointer(const std::vector<size_t> &packed) {
       if (end > len)
         printf("specified file chunk reaches after the end of file");
       if (packed_red[i] % pagesize != 0 || packed_red[i + 1] % pagesize != 0)
-        printf("Chunks much be page-aligned, %lu %lu\n", packed_red[i], packed_red[i + 1]);
+        printf("Chunks must be page-aligned, %lu %lu\n", packed_red[i], packed_red[i + 1]);
     }
     res = map_pointer(nullptr, packed_red[i], packed_red[i + 1]);
   }

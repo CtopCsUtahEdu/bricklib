@@ -50,14 +50,6 @@ struct Subdomain {
   }
 };
 
-struct RegionSpec {
-  // This always specifies the sender's zmort/neighbor
-  ZMORT zmort;
-  BitSet neighbor;
-  BrickStorage *storage;
-  long pos, len;
-};
-
 struct ExView {
   int rank, id;
   void *ptr;
@@ -66,10 +58,10 @@ struct ExView {
 
 __global__ void
 brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx, int inIdx) {
-  unsigned s = blockIdx.x / strideb;
+  unsigned s = blockIdx.z;
 
-  unsigned bk = blockIdx.z;
-  unsigned bj = blockIdx.y;
+  unsigned bk = blockIdx.y;
+  unsigned bj = blockIdx.x / strideb;
   unsigned bi = blockIdx.x % strideb;
 
   unsigned b = grid_ptr[bi + (bj + bk * strideb) * strideb];
@@ -83,9 +75,9 @@ brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx, in
 // When it only contains a single domain remove the brick pointer to improve performance
 __global__ void
 brick_kernel_single_domain(unsigned *grid, Brick3D out, Brick3D in, unsigned strideb) {
-  unsigned bk = blockIdx.z;
-  unsigned bj = blockIdx.y;
-  unsigned bi = blockIdx.x;
+  unsigned bk = blockIdx.y;
+  unsigned bj = blockIdx.x / strideb;
+  unsigned bi = blockIdx.x % strideb;
 
   unsigned b = grid[bi + (bj + bk * strideb) * strideb];
 
@@ -139,6 +131,7 @@ int main(int argc, char **argv) {
   size_t sec_size = bSize * bInfo.nbricks * sizeof(bElem);
   MEMFD memfd(sec_size * (mysec_r - mysec_l));
 
+  // Populate the list of all neighbors
   std::vector<BitSet> neighbors;
   allneighbors(0, 1, 3, neighbors);
 
@@ -177,11 +170,6 @@ int main(int argc, char **argv) {
   CUcontext pctx;
   cudaCheck((cudaError_t) cudaSetDevice(device));
   cudaCheck((cudaError_t) cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
-
-  // Starts linking all internal/external regions
-  // This part assumes shared object so that the ghostzones on shared memory are reallocated to the correct page
-  // Unordered map specified the dest/src rank and a bunch of regions
-  std::unordered_map<int, std::vector<RegionSpec>> sendReg, recvReg;
 
   /* A ghost region can be in three states
    *   * Initial states (created) for communication
@@ -365,8 +353,11 @@ int main(int argc, char **argv) {
 
   cudaDeviceSynchronize();
 
-  auto brick_func = [&grid_dev_ptr, &sendViews, &sendReg, &recvViews, &recvReg, &bricks_dev_vec,
+  auto brick_func = [&grid_dev_ptr, &sendViews, &recvViews, &bricks_dev_vec,
       &bricks_dev]() -> void {
+#ifdef BARRIER_TIMESTEP
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
     float elapsed;
     double t_a = omp_get_wtime();
     cudaEvent_t c_0, c_1;
@@ -392,10 +383,10 @@ int main(int argc, char **argv) {
     waittime += t_a - t_b;
 
     cudaEventRecord(c_0);
-    dim3 block(STRIDEB * (mysec_r - mysec_l), STRIDEB, STRIDEB), thread(32);
+    dim3 block(STRIDEB * STRIDEB, STRIDEB, mysec_r - mysec_l), thread(32);
     if (mysec_r - mysec_l > 1) {
       brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 1, 0);
-      for (int i = 0; i < ST_ITER / 2; ++i) {
+      for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
         brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 2, 1);
         brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 1, 2);
       }
@@ -403,7 +394,7 @@ int main(int argc, char **argv) {
     } else {
       brick_kernel_single_domain << < block, thread >> >
                                              (grid_dev_ptr, bricks_dev_vec[1], bricks_dev_vec[0], STRIDEB);
-      for (int i = 0; i < ST_ITER / 2; ++i) {
+      for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
         brick_kernel_single_domain << < block, thread >> >
                                                (grid_dev_ptr, bricks_dev_vec[2], bricks_dev_vec[1], STRIDEB);
         brick_kernel_single_domain << < block, thread >> >
@@ -413,6 +404,7 @@ int main(int argc, char **argv) {
                                              (grid_dev_ptr, bricks_dev_vec[0], bricks_dev_vec[1], STRIDEB);
     }
     cudaEventRecord(c_1);
+    cudaEventSynchronize(c_1);
     cudaEventElapsedTime(&elapsed, c_0, c_1);
     calctime += elapsed / 1000.0;
   };
@@ -435,7 +427,7 @@ int main(int argc, char **argv) {
   double total = calc_s.avg + call_s.avg + wait_s.avg;
 
   if (rank == 0) {
-    std::cout << "Bri: " << total << " : " << tot << std::endl;
+    std::cout << "Bri: " << total << " : " << tot / ST_ITER << std::endl;
 
     std::cout << "calc : " << calc_s << std::endl;
     std::cout << "call : " << call_s << std::endl;

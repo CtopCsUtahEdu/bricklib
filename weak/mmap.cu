@@ -127,6 +127,7 @@ int main(int argc, char **argv) {
     }
 
     bElem *out_ptr_dev = out_ptr;
+    bElem *in_ptr_dev = in_ptr;
 
     size_t tsize = 0;
     for (int i = 0; i < bDecomp.ghost.size(); ++i)
