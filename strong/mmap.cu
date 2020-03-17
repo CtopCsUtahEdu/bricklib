@@ -7,8 +7,9 @@
 #include <algorithm>
 #include <brick.h>
 #include <brick-mpi.h>
-#include <array-mpi.h>
 #include <bricksetup.h>
+#include <brick-cuda.h>
+#include <cuda.h>
 #include <zmort.h>
 #include <map>
 #include "stencils/fake.h"
@@ -16,6 +17,7 @@
 #include "bitset.h"
 #include <multiarray.h>
 #include <brickcompare.h>
+#include "stencils/cudaarray.h"
 
 #include <unistd.h>
 #include <memfd.h>
@@ -25,7 +27,7 @@
 #define PADDING 8
 #define BDIM 8,8,8
 
-#include "stencils/cpuvfold.h"
+#include "stencils/gpuvfold.h"
 #include "args.h"
 
 #define STRIDE (sdom_size + 2 * GZ + 2 * PADDING)
@@ -38,9 +40,6 @@ struct Subdomain {
   ZMORT zmort;
   std::vector<BrickStorage *> storage;
   std::vector<Brick3D> brick;
-  std::vector<bElem *> array;
-  std::unordered_map<uint64_t, int> rank_map;
-  std::unordered_map<uint64_t, int> id_map;
 
   void cleanup() {
     for (auto bStorage: storage)
@@ -51,30 +50,42 @@ struct Subdomain {
   }
 };
 
-struct RegionSpec {
-  // This always specifies the sender's zmort/neighbor
-  ZMORT zmort;
-  BitSet neighbor;
-  BrickStorage *storage;
-  long pos, len;
-};
-
 struct ExView {
   int rank, id;
   void *ptr;
   size_t len;
 };
 
-inline void brick_stencil_pencil(
-    Brick3D &out, Brick3D &in, long skip, unsigned *grid_ptr) {
-  for (long ti = skip; ti < STRIDEB - skip; ++ti) {
-    unsigned b = grid_ptr[ti];
-    brick(ST_SCRTPT, VSVEC, (BDIM), (VFOLD), b);
-  }
+__global__ void
+brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx, int inIdx) {
+  unsigned s = blockIdx.z;
+
+  unsigned bk = blockIdx.y;
+  unsigned bj = blockIdx.x / strideb;
+  unsigned bi = blockIdx.x % strideb;
+
+  unsigned b = grid_ptr[bi + (bj + bk * strideb) * strideb];
+
+  Brick3D &out = barr[s * 3 + outIdx];
+  Brick3D &in = barr[s * 3 + inIdx];
+
+  brick(ST_SCRTPT, VSVEC, (BDIM), (VFOLD), b);
+}
+
+// When it only contains a single domain remove the brick pointer to improve performance
+__global__ void
+brick_kernel_single_domain(unsigned *grid, Brick3D out, Brick3D in, unsigned strideb) {
+  unsigned bk = blockIdx.y;
+  unsigned bj = blockIdx.x / strideb;
+  unsigned bi = blockIdx.x % strideb;
+
+  unsigned b = grid[bi + (bj + bk * strideb) * strideb];
+
+  brick(ST_SCRTPT, VSVEC, (BDIM), (VFOLD), b);
 }
 
 int main(int argc, char **argv) {
-  MPI_ITER = 25;
+  MPI_ITER = 100;
   int provided;
   MPI_Init_thread(&argc, &argv, MPI_THREAD_SERIALIZED, &provided);
   if (provided != MPI_THREAD_SERIALIZED) {
@@ -82,7 +93,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  parseArgs(argc, argv, "cpu");
+  parseArgs(argc, argv, "cuda-mmap");
 
   int size, rank;
 
@@ -152,26 +163,13 @@ int main(int argc, char **argv) {
     subdomains[idx].brick.emplace_back(&bInfo, *bStorage, 0);
     subdomains[idx].storage.push_back(bStorage);
 
-    if (validate) {
-      subdomains[idx].array.emplace_back(in_ptr);
-      subdomains[idx].array.emplace_back(zeroArray({STRIDE, STRIDE, STRIDE}));
-      // Populate rank map
-      for (auto &n: neighbors) {
-        int dst, sub;
-        ZMORT zmort = zid;
-        getrank(n, zmort, dst, sub);
-        subdomains[idx].rank_map[n.set] = dst;
-        subdomains[idx].id_map[n.set] = sub;
-      }
-    } else {
-      free(in_ptr);
-    }
+    free(in_ptr);
   }
 
-  // Starts linking all internal/external regions
-  // This part assumes shared object so that the ghostzones on shared memory are reallocated to the correct page
-  // Unordered map specified the dest/src rank and a bunch of regions
-  std::unordered_map<int, std::vector<RegionSpec>> sendReg, recvReg;
+  CUdevice device = 0;
+  CUcontext pctx;
+  cudaCheck((cudaError_t) cudaSetDevice(device));
+  cudaCheck((cudaError_t) cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
 
   /* A ghost region can be in three states
    *   * Initial states (created) for communication
@@ -316,23 +314,55 @@ int main(int argc, char **argv) {
     recvViews.push_back(rview);
   }
 
-  // Actual calculation
-  auto brick_stencil = [&grid_ptr, &subdomains](int out, int in, long skip) -> void {
-    auto grid = (unsigned (*)[STRIDEB][STRIDEB]) grid_ptr;
-    int size = subdomains.size();
-#pragma omp parallel for collapse(3)
-    for (int s = 0; s < size; ++s)
-      for (long tk = skip; tk < STRIDEB - skip; ++tk)
-        for (long tj = skip; tj < STRIDEB - skip; ++tj)
-          brick_stencil_pencil(subdomains[s].brick[out], subdomains[s].brick[in], skip, &(grid[tk][tj][0]));
+  BrickInfo<3> *bInfo_dev;
+  auto _bInfo_dev = movBrickInfo(bInfo, cudaMemcpyHostToDevice);
+  {
+    unsigned size = sizeof(BrickInfo<3>);
+    cudaMalloc(&bInfo_dev, size);
+    cudaMemcpy(bInfo_dev, &_bInfo_dev, size, cudaMemcpyHostToDevice);
+  }
+
+  unsigned *grid_dev_ptr = nullptr;
+  copyToDevice({STRIDEB, STRIDEB, STRIDEB}, grid_dev_ptr, grid_ptr);
+
+  // Create brick arrays for the device
+  std::vector<Brick3D> bricks_dev_vec;
+
+  auto moveToGPU = [&device, &bDecomp](BrickStorage &bStorage) -> void {
+    cudaCheck(cudaMemAdvise(bStorage.dat,
+                            bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), cudaMemAdviseSetPreferredLocation,
+                            device));
+
+    cudaMemPrefetchAsync(bStorage.dat, bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), device);
   };
 
-  auto brick_func = [&]() -> void {
+  for (unsigned long idx = 0; idx < mysec_r - mysec_l; ++idx) {
+    bricks_dev_vec.emplace_back(bInfo_dev, *subdomains[idx].storage[0], 0);
+    bricks_dev_vec.emplace_back(bInfo_dev, *subdomains[idx].storage[1], 0);
+    bricks_dev_vec.emplace_back(bInfo_dev, *subdomains[idx].storage[2], 0);
+    for (int i = 0; i < 3; ++i)
+      moveToGPU(*subdomains[idx].storage[i]);
+  }
+
+  Brick3D *bricks_dev;
+  {
+    size_t size = sizeof(Brick3D) * bricks_dev_vec.size();
+    cudaMalloc(&bricks_dev, size);
+    cudaMemcpy(bricks_dev, bricks_dev_vec.data(), size, cudaMemcpyHostToDevice);
+  }
+
+  cudaDeviceSynchronize();
+
+  auto brick_func = [&grid_dev_ptr, &sendViews, &recvViews, &bricks_dev_vec,
+      &bricks_dev]() -> void {
 #ifdef BARRIER_TIMESTEP
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
-
+    float elapsed;
     double t_a = omp_get_wtime();
+    cudaEvent_t c_0, c_1;
+    cudaEventCreate(&c_0);
+    cudaEventCreate(&c_1);
 
     std::vector<MPI_Request> requests(recvViews.size() + sendViews.size());
 
@@ -346,25 +376,41 @@ int main(int argc, char **argv) {
     double t_b = omp_get_wtime();
     calltime += t_b - t_a;
 
+    // Wait
     std::vector<MPI_Status> stats(requests.size());
     MPI_Waitall(static_cast<int>(requests.size()), requests.data(), stats.data());
-
     t_a = omp_get_wtime();
     waittime += t_a - t_b;
 
-    // Iterate over all subdomains
-    brick_stencil(1, 0, 0);
-    for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
-      brick_stencil(2, 1, 0);
-      brick_stencil(1, 2, 0);
+    cudaEventRecord(c_0);
+    dim3 block(STRIDEB * STRIDEB, STRIDEB, mysec_r - mysec_l), thread(32);
+    if (mysec_r - mysec_l > 1) {
+      brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 1, 0);
+      for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
+        brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 2, 1);
+        brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 1, 2);
+      }
+      brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 0, 1);
+    } else {
+      brick_kernel_single_domain << < block, thread >> >
+                                             (grid_dev_ptr, bricks_dev_vec[1], bricks_dev_vec[0], STRIDEB);
+      for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
+        brick_kernel_single_domain << < block, thread >> >
+                                               (grid_dev_ptr, bricks_dev_vec[2], bricks_dev_vec[1], STRIDEB);
+        brick_kernel_single_domain << < block, thread >> >
+                                               (grid_dev_ptr, bricks_dev_vec[1], bricks_dev_vec[2], STRIDEB);
+      }
+      brick_kernel_single_domain << < block, thread >> >
+                                             (grid_dev_ptr, bricks_dev_vec[0], bricks_dev_vec[1], STRIDEB);
     }
-    brick_stencil(0, 1, 1);
-
-    t_b = omp_get_wtime();
-    calctime += t_b - t_a;
+    cudaEventRecord(c_1);
+    cudaEventSynchronize(c_1);
+    cudaEventElapsedTime(&elapsed, c_0, c_1);
+    calctime += elapsed / 1000.0;
   };
 
   int cnt;
+
   double tot = time_mpi(brick_func, cnt, bDecomp);
   cnt *= ST_ITER;
   size_t tsize = 0;
@@ -374,11 +420,11 @@ int main(int argc, char **argv) {
     tsize += rview.len;
 
   mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
-  mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
   mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
+  mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
   mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
   mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
-  double total = calc_s.avg + wait_s.avg + call_s.avg;
+  double total = calc_s.avg + call_s.avg + wait_s.avg;
 
   if (rank == 0) {
     std::cout << "Bri: " << total << " : " << tot / ST_ITER << std::endl;
@@ -388,91 +434,16 @@ int main(int argc, char **argv) {
     std::cout << "wait : " << wait_s << std::endl;
     std::cout << "  | MPI size (MB): " << size_s << std::endl;
     std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
-    std::cout << "parts " << recvViews.size() + sendViews.size() << std::endl;
 
     double perf = dom_size / 1000.0;
     perf = perf * perf * perf / total;
     std::cout << "perf " << perf << " GStencil/s" << std::endl;
-  }
-
-  if (validate) {
-    if (rank == 0)
-      std::cout << "Validation is enabled by \"-v\" on the commandline, validating" << std::endl;
-
-    auto array_stencil = [&](bElem *arrOut_ptr, bElem *arrIn_ptr, long skip) -> void {
-      auto arrIn = (bElem (*)[STRIDE][STRIDE]) arrIn_ptr;
-      auto arrOut = (bElem (*)[STRIDE][STRIDE]) arrOut_ptr;
-      long skip2 = (skip / TILE) * TILE;
-#pragma omp parallel for collapse(2)
-      for (long tk = PADDING + skip; tk < PADDING + STRIDEG - skip; tk += TILE)
-        for (long tj = PADDING + skip; tj < PADDING + STRIDEG - skip; tj += TILE)
-          for (long ti = PADDING + skip2; ti < PADDING + STRIDEG - skip2; ti += TILE)
-            for (long k = tk; k < tk + TILE; ++k)
-              for (long j = tj; j < tj + TILE; ++j)
-#pragma omp simd
-                  for (long i = ti; i < ti + TILE; ++i)
-                    ST_CPU;
-    };
-
-    std::vector<ArrExPack> arrpack;
-    for (auto &s: subdomains) {
-      ArrExPack p;
-      p.arr = s.array[0];
-      p.id = s.zmort.id - mysec_l;
-      p.rank_map = &s.rank_map;
-      p.id_map = &s.id_map;
-      arrpack.emplace_back(p);
-    }
-    auto arr_func = [&]() -> void {
-      for (auto &s: subdomains)
-        exchangeArrAll<3>(arrpack, MPI_COMM_WORLD, {sdom_size, sdom_size, sdom_size},
-                          {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
-
-      double t_a = omp_get_wtime();
-      for (auto &s: subdomains)
-        array_stencil(s.array[1], s.array[0], 0);
-      for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
-        for (auto &s: subdomains)
-          array_stencil(s.array[0], s.array[1], 0);
-        for (auto &s: subdomains)
-          array_stencil(s.array[1], s.array[0], 0);
-      }
-      for (auto &s: subdomains)
-        array_stencil(s.array[0], s.array[1], TILE);
-      double t_b = omp_get_wtime();
-      calctime += t_b - t_a;
-    };
-
-    double total = time_mpi(arr_func, cnt, bDecomp);
-    cnt *= ST_ITER;
-    if (rank == 0)
-      std::cout << "Checking result" << std::endl;
-
-    bool correct = true, allcorrect;
-    for (auto &s: subdomains)
-      if (!compareBrick<3>({sdom_size, sdom_size, sdom_size}, {PADDING, PADDING, PADDING},
-                           {GZ, GZ, GZ}, s.array[0], grid_ptr, s.brick[0])) {
-        std::cout << "Rank " << rank << " result mismatch at subdomain " << s.zmort.id << std::endl;
-        correct = false;
-      }
-    MPI_Reduce(&correct, &allcorrect, 1, MPI_C_BOOL, MPI_LAND, 0, MPI_COMM_WORLD);
-    if (rank == 0 && allcorrect)
-      std::cout << "Validated" << std::endl;
-    mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
-    mpi_stats pack_s = mpi_statistics(packtime / cnt, MPI_COMM_WORLD);
-    mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
-    mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
-    total = calc_s.avg + wait_s.avg + call_s.avg + pack_s.avg;
-    std::cout << "Array: " << total << std::endl;
-
-    std::cout << "calc : " << calc_s << std::endl;
-    std::cout << "pack : " << pack_s << std::endl;
-    std::cout << "call : " << call_s << std::endl;
-    std::cout << "wait : " << wait_s << std::endl;
+    std::cout << "part " << sendViews.size() + recvViews.size() << std::endl;
   }
 
   memfd.cleanup();
 
   MPI_Finalize();
+
   return 0;
 }

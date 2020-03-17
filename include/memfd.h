@@ -9,6 +9,7 @@
 #include <iostream>
 #include <vector>
 #include <initializer_list>
+#include <set>
 #include <sys/mman.h>
 #include <stdio.h>
 #include <string.h>
@@ -29,8 +30,11 @@ private:
 #endif
 public:
   static uint8_t *mmap_end;
+  static std::set<void *> allocated;
 
   static void setup_prefix(const std::string &prefix, int rank);
+
+  static void free(void *ptr, size_t length);
 
   MEMFD(MEMFD* memfd): len(memfd->len), ring_fd(memfd->ring_fd), pagesize(memfd->pagesize), offset(0) {
 #ifndef USE_MEMFD

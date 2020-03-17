@@ -392,6 +392,10 @@ int main(int argc, char **argv) {
 
   auto brick_func = [&grid_dev_ptr, &sendViews, &sendReg, &recvViews, &recvReg, &bricks_dev_vec,
       &bricks_dev, &links, &local_l_dev, &pack_links, &pack_l_dev, &unpack_links, &unpack_l_dev]() -> void {
+#ifdef BARRIER_TIMESTEP
+    MPI_Barrier(MPI_COMM_WORLD);
+#endif
+
     float elapsed;
     double t_a = omp_get_wtime();
     cudaEvent_t c_0, c_1, c_2, c_3;
@@ -458,8 +462,10 @@ int main(int argc, char **argv) {
       }
     else
       for (int i = 0; i < ST_ITER / 2; ++i) {
-        brick_kernel_single_domain<< < block, thread >> > (grid_dev_ptr, bricks_dev_vec[0], bricks_dev_vec[1], STRIDEB);
-        brick_kernel_single_domain<< < block, thread >> > (grid_dev_ptr, bricks_dev_vec[1], bricks_dev_vec[0], STRIDEB);
+        brick_kernel_single_domain << < block, thread >> >
+                                               (grid_dev_ptr, bricks_dev_vec[0], bricks_dev_vec[1], STRIDEB);
+        brick_kernel_single_domain << < block, thread >> >
+                                               (grid_dev_ptr, bricks_dev_vec[1], bricks_dev_vec[0], STRIDEB);
       }
     cudaEventRecord(c_2);
     // Pack
@@ -534,7 +540,7 @@ int main(int argc, char **argv) {
   double total = calc_s.avg + call_s.avg + wait_s.avg + move_s.avg + pack_s.avg;
 
   if (rank == 0) {
-    std::cout << "Bri: " << total << " : " << tot << std::endl;
+    std::cout << "Bri: " << total << " : " << tot / ST_ITER << std::endl;
 
     std::cout << "calc : " << calc_s << std::endl;
     std::cout << "pack : " << pack_s << std::endl;
