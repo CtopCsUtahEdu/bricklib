@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
               if (p->second.i == last_mfd && last_pos + last_size == p->second.pos * sizeof(bElem))
                 last_size += p->second.len;
               else {
-                if (last_mfd >= 0) {
+                if (last_mfd >= 0 && last_size > 0) {
                   // Map from somewhere else or remap it back
                   ((MEMFD *) subdomains[last_mfd].storage[0]->mmap_info)
                       ->map_pointer(hint, last_pos, last_size);
@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
               }
               spos += bDecomp.skin_size[j] * s.storage[0]->step;
             }
-            if (last_mfd >= 0) {
+            if (last_mfd >= 0 && last_size > 0) {
               // Map from somewhere else or remap it back
               ((MEMFD *) subdomains[last_mfd].storage[0]->mmap_info)
                   ->map_pointer(hint, last_pos, last_size);
@@ -292,11 +292,12 @@ int main(int argc, char **argv) {
     sview.len = 0;
     sview.rank = sregs.first;
     sview.id = (int) sregs.second.begin()->first;
-    for (auto &sreg: sregs.second) {
-      sview.ptr = ((MEMFD *) subdomains[sreg.second.i].storage[0]->mmap_info)->map_pointer(
-          nullptr, sreg.second.pos * sizeof(bElem), sreg.second.len);
-      sview.len += sreg.second.len;
-    }
+    for (auto &sreg: sregs.second)
+      if (sreg.second.len) {
+        sview.ptr = ((MEMFD *) subdomains[sreg.second.i].storage[0]->mmap_info)->map_pointer(
+            nullptr, sreg.second.pos * sizeof(bElem), sreg.second.len);
+        sview.len += sreg.second.len;
+      }
     sendViews.push_back(sview);
   }
 
@@ -306,11 +307,12 @@ int main(int argc, char **argv) {
     rview.len = 0;
     rview.rank = rregs.first;
     rview.id = (int) rregs.second.begin()->first;
-    for (auto &rreg: rregs.second) {
-      rview.ptr = ((MEMFD *) subdomains[rreg.second.i].storage[0]->mmap_info)->map_pointer(
-          nullptr, rreg.second.pos * sizeof(bElem), rreg.second.len);
-      rview.len += rreg.second.len;
-    }
+    for (auto &rreg: rregs.second)
+      if (rreg.second.len) {
+        rview.ptr = ((MEMFD *) subdomains[rreg.second.i].storage[0]->mmap_info)->map_pointer(
+            nullptr, rreg.second.pos * sizeof(bElem), rreg.second.len);
+        rview.len += rreg.second.len;
+      }
     recvViews.push_back(rview);
   }
 
