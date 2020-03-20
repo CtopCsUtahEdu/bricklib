@@ -87,6 +87,7 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${CMAKE_CXX_FLAGS}\"")
+set(MPI_CXX_HEADER_DIR "/opt/cray/pe/mpt/7.7.10/gni/mpich-INTEL/16.0/include")
 
 include_directories(
         ${CMAKE_CURRENT_SOURCE_DIR}/include
