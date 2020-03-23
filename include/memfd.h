@@ -21,7 +21,7 @@ class MEMFD {
 private:
   size_t len;
   int ring_fd;
-  int pagesize;
+  long pagesize;
   size_t offset;
 #ifndef USE_MEMFD
   static std::string shm_prefix;

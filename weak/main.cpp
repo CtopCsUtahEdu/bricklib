@@ -103,10 +103,15 @@ int main(int argc, char **argv) {
     auto arr_in = (bElem (*)[stride[1]][stride[0]]) in_ptr;
     auto arr_out = (bElem (*)[stride[1]][stride[0]]) out_ptr;
 
-    ExchangeView ev = bDecomp.exchangeView(bStorage);
+#ifndef DECOMP_PAGEUNALIGN
+#ifdef MWAITS
     auto mwev = bDecomp.multiStageExchangeView(bStorage);
-    auto ev_out = bDecomp.exchangeView(bStorageOut);
     auto mwev_out = bDecomp.multiStageExchangeView(bStorageOut);
+#else
+    ExchangeView ev = bDecomp.exchangeView(bStorage);
+    auto ev_out = bDecomp.exchangeView(bStorageOut);
+#endif
+#endif
 
     auto array_stencil = [&](bElem *arrOut_ptr, bElem *arrIn_ptr, long skip) -> void {
       auto arrIn = (bElem (*)[stride[1]][stride[0]]) arrIn_ptr;
@@ -165,9 +170,15 @@ int main(int argc, char **argv) {
     };
 
     auto brick_func = [&]() -> void {
-      // mwev.exchange();
+#ifndef DECOMP_PAGEUNALIGN
+#ifdef MWAITS
+      mwev.exchange();
+#else
       ev.exchange();
-      // bDecomp.exchange(bStorage);
+#endif
+#else
+      bDecomp.exchange(bStorage);
+#endif
 
 #ifdef MPI_49PT
       double t_a = omp_get_wtime();
@@ -175,9 +186,15 @@ int main(int argc, char **argv) {
       double t_b = omp_get_wtime();
       calctime += t_b - t_a;
 
-      // mwev_out.exchange();
+#ifndef DECOMP_PAGEUNALIGN
+#ifdef MWAITS
+      mwev_out.exchange();
+#else
       ev_out.exchange();
-      // bDecomp.exchange(bStorageOut);
+#endif
+#else
+      bDecomp.exchange(bStorageOut);
+#endif
       t_a = omp_get_wtime();
       brick_stencil(bIn, bOut, grid_ptr, 1);
       t_b = omp_get_wtime();

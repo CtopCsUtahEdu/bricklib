@@ -89,7 +89,8 @@ int main(int argc, char **argv) {
     bDecomp.initialize(skin3d_good);
     BrickInfo<3> bInfo = bDecomp.getBrickInfo();
     auto bStorage = bInfo.mmap_alloc(bSize);
-    auto bStorageOut = bInfo.mmap_alloc(bSize);
+    auto bStorageInt0 = bInfo.allocate(bSize);
+    auto bStorageInt1 = bInfo.allocate(bSize);
 
     auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * strideb[2] * strideb[1] * strideb[0]);
     auto grid = (unsigned (*)[strideb[1]][strideb[0]]) grid_ptr;
@@ -109,7 +110,6 @@ int main(int argc, char **argv) {
         }
 
     Brick3D bIn(&bInfo, bStorage, 0);
-    Brick3D bOut(&bInfo, bStorageOut, 0);
 
     copyToBrick<3>(strideg, {PADDING, PADDING, PADDING}, {0, 0, 0}, in_ptr, grid_ptr, bIn);
 
@@ -137,6 +137,14 @@ int main(int argc, char **argv) {
     std::unordered_map<uint64_t, MPI_Datatype> rtypemap;
     exchangeArrPrepareTypes<3>(stypemap, rtypemap, {dom_size[0], dom_size[1], dom_size[2]},
                                {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
+
+    {
+      long arr_size = stride[0] * stride[1] * stride[2] * sizeof(bElem);
+      cudaCheck(cudaMemAdvise(in_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
+      cudaMemPrefetchAsync(in_ptr, arr_size, device);
+      cudaCheck(cudaMemAdvise(out_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
+      cudaMemPrefetchAsync(out_ptr, arr_size, device);
+    }
 
     auto arr_func = [&]() -> void {
       float elapsed;
@@ -198,35 +206,44 @@ int main(int argc, char **argv) {
       }
     }
 
+    // setup brick on device
+    BrickInfo<3> *bInfo_dev;
+    auto _bInfo_dev = movBrickInfo(bInfo, cudaMemcpyHostToDevice);
+    {
+      unsigned size = sizeof(BrickInfo<3>);
+      cudaMalloc(&bInfo_dev, size);
+      cudaMemcpy(bInfo_dev, &_bInfo_dev, size, cudaMemcpyHostToDevice);
+    }
+
+    BrickStorage bStorageInt0_dev = movBrickStorage(bStorageInt0, cudaMemcpyHostToDevice);
+    BrickStorage bStorageInt1_dev = movBrickStorage(bStorageInt1, cudaMemcpyHostToDevice);
+
+    Brick3D bIn_dev(bInfo_dev, bStorage, 0);
+    Brick3D bInt0_dev(bInfo_dev, bStorageInt0_dev, 0);
+    Brick3D bInt1_dev(bInfo_dev, bStorageInt1_dev, 0);
+
+    unsigned *grid_dev_ptr = nullptr;
+    copyToDevice(strideb, grid_dev_ptr, grid_ptr);
+
+    unsigned *grid_stride_dev = nullptr;
+    {
+      unsigned grid_stride_tmp[3];
+      for (int i = 0; i < 3; ++i)
+        grid_stride_tmp[i] = strideb[i];
+      copyToDevice({3}, grid_stride_dev, grid_stride_tmp);
+    }
+
+#ifndef DECOMP_PAGEUNALIGN
     ExchangeView ev = bDecomp.exchangeView(bStorage);
+#endif
 
     cudaCheck(cudaMemAdvise(bStorage.dat,
-                            bStorage.step * bDecomp.sep_pos[0] * sizeof(bElem), cudaMemAdviseSetPreferredLocation,
+                            bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), cudaMemAdviseSetPreferredLocation,
                             device));
 
-    cudaCheck(cudaMemAdvise(bStorage.dat + bStorage.step * bDecomp.sep_pos[0],
-                            bStorage.step * (bDecomp.sep_pos[2] - bDecomp.sep_pos[0]) * sizeof(bElem),
-                            cudaMemAdviseSetPreferredLocation,
-                            cudaCpuDeviceId));
-
-    cudaMemPrefetchAsync(bStorage.dat, bStorage.step * bDecomp.sep_pos[0] * sizeof(bElem), device);
-
-    cudaCheck(cudaMemAdvise(bStorageOut.dat,
-                            bStorage.step * bDecomp.sep_pos[0] * sizeof(bElem), cudaMemAdviseSetPreferredLocation,
-                            device));
-
-    cudaCheck(cudaMemAdvise(bStorageOut.dat + bStorage.step * bDecomp.sep_pos[0],
-                            bStorage.step * (bDecomp.sep_pos[2] - bDecomp.sep_pos[0]) * sizeof(bElem),
-                            cudaMemAdviseSetPreferredLocation,
-                            cudaCpuDeviceId));
-
-    cudaMemPrefetchAsync(bStorageOut.dat, bStorage.step * bDecomp.sep_pos[0] * sizeof(bElem), device);
+    cudaMemPrefetchAsync(bStorage.dat, bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), device);
 
     cudaMemPrefetchAsync(grid_ptr, STRIDEB * STRIDEB * STRIDEB * sizeof(unsigned), device);
-
-    unsigned grid_stride[3];
-    for (int i = 0; i < 3; ++i)
-      grid_stride[i] = strideb[i];
 
     auto brick_func = [&]() -> void {
       float elapsed;
@@ -234,16 +251,20 @@ int main(int argc, char **argv) {
       cudaEventCreate(&c_0);
       cudaEventCreate(&c_1);
 
-      // bDecomp.exchange(bStorage);
-
+#ifdef DECOMP_PAGEUNALIGN
+      bDecomp.exchange(bStorage);
+#else
       ev.exchange();
+#endif
 
       dim3 block(strideb[0], strideb[1], strideb[2]), thread(32);
       cudaEventRecord(c_0);
-      for (int i = 0; i < ST_ITER / 2; ++i) {
-        brick_kernel << < block, thread >> > (grid_ptr, bIn, bOut, grid_stride);
-        brick_kernel << < block, thread >> > (grid_ptr, bOut, bIn, grid_stride);
+      brick_kernel << < block, thread >> > (grid_dev_ptr, bIn_dev, bInt0_dev, grid_stride_dev);
+      for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
+        brick_kernel << < block, thread >> > (grid_dev_ptr, bInt0_dev, bInt1_dev, grid_stride_dev);
+        brick_kernel << < block, thread >> > (grid_dev_ptr, bInt1_dev, bInt0_dev, grid_stride_dev);
       }
+      brick_kernel << < block, thread >> > (grid_dev_ptr, bInt0_dev, bIn_dev, grid_stride_dev);
       cudaEventRecord(c_1);
       cudaEventSynchronize(c_1);
       cudaEventElapsedTime(&elapsed, c_0, c_1);
@@ -279,7 +300,7 @@ int main(int argc, char **argv) {
     }
 
     if (!compareBrick<3>({dom_size[0], dom_size[1], dom_size[2]}, {PADDING, PADDING, PADDING},
-                         {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
+                         {GZ, GZ, GZ}, in_ptr, grid_ptr, bIn))
       std::cout << "result mismatch!" << std::endl;
 
     free(bInfo.adj);
@@ -287,7 +308,6 @@ int main(int argc, char **argv) {
     free(in_ptr);
 
     ((MEMFD *) bStorage.mmap_info)->cleanup();
-    ((MEMFD *) bStorageOut.mmap_info)->cleanup();
   }
 
   MPI_Finalize();

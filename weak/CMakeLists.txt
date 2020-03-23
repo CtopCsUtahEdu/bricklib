@@ -4,14 +4,14 @@ target_link_libraries(weak-cpu brick brickhelper ${MPI_CXX_LIBRARIES} ${LIBRT})
 set_target_properties(weak-cpu
         PROPERTIES OUTPUT_NAME cpu)
 
-VSTARGET(N3MPI onesided.cpp ${CMAKE_CURRENT_SOURCE_DIR}/onesided-out.cpp)
-add_executable(weak-onesided ${VSTARGET_N3MPI_OUTPUT})
+VSTARGET(N3MPI_ONESIDED onesided.cpp ${CMAKE_CURRENT_SOURCE_DIR}/onesided-out.cpp)
+add_executable(weak-onesided ${VSTARGET_N3MPI_ONESIDED_OUTPUT})
 target_link_libraries(weak-onesided brick brickhelper ${MPI_CXX_LIBRARIES} ${LIBRT})
 set_target_properties(weak-onesided
         PROPERTIES OUTPUT_NAME onesided)
 
-VSTARGET(N3MPI shmem.cpp ${CMAKE_CURRENT_SOURCE_DIR}/shmem-out.cpp)
-add_executable(weak-shmem EXCLUDE_FROM_ALL ${VSTARGET_N3MPI_OUTPUT})
+VSTARGET(N3MPI_SHMEM shmem.cpp ${CMAKE_CURRENT_SOURCE_DIR}/shmem-out.cpp)
+add_executable(weak-shmem EXCLUDE_FROM_ALL ${VSTARGET_N3MPI_SHMEM_OUTPUT})
 message(STATUS ${MPI_CXX_LIBRARIES})
 target_link_libraries(weak-shmem brick brickhelper ${MPI_CXX_LIBRARIES} /usr/lib/openmpi/liboshmem.so ${LIBRT})
 set_target_properties(weak-shmem
