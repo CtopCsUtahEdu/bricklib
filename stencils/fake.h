@@ -21,6 +21,17 @@
 #define MPI_B1 0.07
 #define MPI_B2 0.03
 
+#define MPI_C0 0.1
+#define MPI_C1 0.04
+#define MPI_C2 0.03
+#define MPI_C3 0.01
+#define MPI_C4 0.006
+#define MPI_C5 0.004
+#define MPI_C6 0.005
+#define MPI_C7 0.002
+#define MPI_C8 0.003
+#define MPI_C9 0.001
+
 #define MPI_7PT
 
 #ifdef MPI_49PT
@@ -73,6 +84,261 @@
                               (in_ptr[pos + 2 * stride[2]] + in_ptr[pos - 2 * stride[2]] + \
                                in_ptr[pos + 2 * stride[1]] + in_ptr[pos - 2 * stride[1]] + \
                                in_ptr[pos + 2] + in_ptr[pos - 2]) * MPI_B2
+#elif defined(MPI_125PT)
+#define ST_SCRTPT "../stencils/mpi125pt.py"
+#define ST_ITER 4
+#define ST_CPU arrOut[k][j][i] = ( \
+       MPI_C0 * arrIn[k][j][i] + \
+       MPI_C1 * (arrIn[k + 1][j][i] + \
+                 arrIn[k - 1][j][i] + \
+                 arrIn[k][j + 1][i] + \
+                 arrIn[k][j - 1][i] + \
+                 arrIn[k][j][i + 1] + \
+                 arrIn[k][j][i - 1]) + \
+       MPI_C2 * (arrIn[k + 2][j][i] + \
+                 arrIn[k - 2][j][i] + \
+                 arrIn[k][j + 2][i] + \
+                 arrIn[k][j - 2][i] + \
+                 arrIn[k][j][i + 2] + \
+                 arrIn[k][j][i - 2]) + \
+       MPI_C3 * (arrIn[k + 1][j + 1][i] + \
+                 arrIn[k - 1][j + 1][i] + \
+                 arrIn[k + 1][j - 1][i] + \
+                 arrIn[k - 1][j - 1][i] + \
+                 arrIn[k + 1][j][i + 1] + \
+                 arrIn[k - 1][j][i + 1] + \
+                 arrIn[k + 1][j][i - 1] + \
+                 arrIn[k - 1][j][i - 1] + \
+                 arrIn[k][j + 1][i + 1] + \
+                 arrIn[k][j - 1][i + 1] + \
+                 arrIn[k][j + 1][i - 1] + \
+                 arrIn[k][j - 1][i - 1]) + \
+       MPI_C4 * (arrIn[k + 1][j + 2][i] + \
+                 arrIn[k - 1][j + 2][i] + \
+                 arrIn[k + 1][j - 2][i] + \
+                 arrIn[k - 1][j - 2][i] + \
+                 arrIn[k + 1][j][i + 2] + \
+                 arrIn[k - 1][j][i + 2] + \
+                 arrIn[k + 1][j][i - 2] + \
+                 arrIn[k - 1][j][i - 2] + \
+                 arrIn[k][j + 1][i + 2] + \
+                 arrIn[k][j - 1][i + 2] + \
+                 arrIn[k][j + 1][i - 2] + \
+                 arrIn[k][j - 1][i - 2] + \
+                 arrIn[k + 2][j + 1][i] + \
+                 arrIn[k - 2][j + 1][i] + \
+                 arrIn[k + 2][j - 1][i] + \
+                 arrIn[k - 2][j - 1][i] + \
+                 arrIn[k + 2][j][i + 1] + \
+                 arrIn[k - 2][j][i + 1] + \
+                 arrIn[k + 2][j][i - 1] + \
+                 arrIn[k - 2][j][i - 1] + \
+                 arrIn[k][j + 2][i + 1] + \
+                 arrIn[k][j - 2][i + 1] + \
+                 arrIn[k][j + 2][i - 1] + \
+                 arrIn[k][j - 2][i - 1]) + \
+       MPI_C5 * (arrIn[k + 2][j + 2][i] + \
+                 arrIn[k - 2][j + 2][i] + \
+                 arrIn[k + 2][j - 2][i] + \
+                 arrIn[k - 2][j - 2][i] + \
+                 arrIn[k + 2][j][i + 2] + \
+                 arrIn[k - 2][j][i + 2] + \
+                 arrIn[k + 2][j][i - 2] + \
+                 arrIn[k - 2][j][i - 2] + \
+                 arrIn[k][j + 2][i + 2] + \
+                 arrIn[k][j - 2][i + 2] + \
+                 arrIn[k][j + 2][i - 2] + \
+                 arrIn[k][j - 2][i - 2]) + \
+       MPI_C6 * (arrIn[k + 1][j + 1][i + 1] + \
+                 arrIn[k - 1][j + 1][i + 1] + \
+                 arrIn[k + 1][j - 1][i + 1] + \
+                 arrIn[k - 1][j - 1][i + 1] + \
+                 arrIn[k + 1][j + 1][i - 1] + \
+                 arrIn[k - 1][j + 1][i - 1] + \
+                 arrIn[k + 1][j - 1][i - 1] + \
+                 arrIn[k - 1][j - 1][i - 1]) + \
+       MPI_C7 * (arrIn[k + 1][j + 1][i + 2] + \
+                 arrIn[k - 1][j + 1][i + 2] + \
+                 arrIn[k + 1][j - 1][i + 2] + \
+                 arrIn[k - 1][j - 1][i + 2] + \
+                 arrIn[k + 1][j + 1][i - 2] + \
+                 arrIn[k - 1][j + 1][i - 2] + \
+                 arrIn[k + 1][j - 1][i - 2] + \
+                 arrIn[k - 1][j - 1][i - 2] + \
+                 arrIn[k + 1][j + 2][i + 1] + \
+                 arrIn[k - 1][j + 2][i + 1] + \
+                 arrIn[k + 1][j - 2][i + 1] + \
+                 arrIn[k - 1][j - 2][i + 1] + \
+                 arrIn[k + 1][j + 2][i - 1] + \
+                 arrIn[k - 1][j + 2][i - 1] + \
+                 arrIn[k + 1][j - 2][i - 1] + \
+                 arrIn[k - 1][j - 2][i - 1] + \
+                 arrIn[k + 2][j + 1][i + 1] + \
+                 arrIn[k - 2][j + 1][i + 1] + \
+                 arrIn[k + 2][j - 1][i + 1] + \
+                 arrIn[k - 2][j - 1][i + 1] + \
+                 arrIn[k + 2][j + 1][i - 1] + \
+                 arrIn[k - 2][j + 1][i - 1] + \
+                 arrIn[k + 2][j - 1][i - 1] + \
+                 arrIn[k - 2][j - 1][i - 1]) + \
+       MPI_C8 * (arrIn[k + 2][j + 2][i + 1] + \
+                 arrIn[k - 2][j + 2][i + 1] + \
+                 arrIn[k + 2][j - 2][i + 1] + \
+                 arrIn[k - 2][j - 2][i + 1] + \
+                 arrIn[k + 2][j + 2][i - 1] + \
+                 arrIn[k - 2][j + 2][i - 1] + \
+                 arrIn[k + 2][j - 2][i - 1] + \
+                 arrIn[k - 2][j - 2][i - 1] + \
+                 arrIn[k + 2][j + 1][i + 2] + \
+                 arrIn[k - 2][j + 1][i + 2] + \
+                 arrIn[k + 2][j - 1][i + 2] + \
+                 arrIn[k - 2][j - 1][i + 2] + \
+                 arrIn[k + 2][j + 1][i - 2] + \
+                 arrIn[k - 2][j + 1][i - 2] + \
+                 arrIn[k + 2][j - 1][i - 2] + \
+                 arrIn[k - 2][j - 1][i - 2] + \
+                 arrIn[k + 1][j + 2][i + 2] + \
+                 arrIn[k - 1][j + 2][i + 2] + \
+                 arrIn[k + 1][j - 2][i + 2] + \
+                 arrIn[k - 1][j - 2][i + 2] + \
+                 arrIn[k + 1][j + 2][i - 2] + \
+                 arrIn[k - 1][j + 2][i - 2] + \
+                 arrIn[k + 1][j - 2][i - 2] + \
+                 arrIn[k - 1][j - 2][i - 2]) + \
+       MPI_C9 * (arrIn[k + 2][j + 2][i + 2] + \
+                 arrIn[k - 2][j + 2][i + 2] + \
+                 arrIn[k + 2][j - 2][i + 2] + \
+                 arrIn[k - 2][j - 2][i + 2] + \
+                 arrIn[k + 2][j + 2][i - 2] + \
+                 arrIn[k - 2][j + 2][i - 2] + \
+                 arrIn[k + 2][j - 2][i - 2] + \
+                 arrIn[k - 2][j - 2][i - 2]) )
+#define ST_GPU out_ptr[pos] = ( \
+       MPI_C0 * in_ptr[pos] + \
+       MPI_C1 * (in_ptr[pos + 1] + \
+                 in_ptr[pos - 1] + \
+                 in_ptr[pos + stride[1]] + \
+                 in_ptr[pos - stride[1]] + \
+                 in_ptr[pos + stride[2]] + \
+                 in_ptr[pos - stride[2]]) + \
+       MPI_C2 * (in_ptr[pos + 2] + \
+                 in_ptr[pos - 2] + \
+                 in_ptr[pos + 2*stride[1]] + \
+                 in_ptr[pos - 2*stride[1]] + \
+                 in_ptr[pos + 2*stride[2]] + \
+                 in_ptr[pos - 2*stride[2]]) + \
+       MPI_C3 * (in_ptr[pos + 1 + stride[1]] + \
+                 in_ptr[pos - 1 + stride[1]] + \
+                 in_ptr[pos + 1 - stride[1]] + \
+                 in_ptr[pos - 1 - stride[1]] + \
+                 in_ptr[pos + 1 + stride[2]] + \
+                 in_ptr[pos - 1 + stride[2]] + \
+                 in_ptr[pos + 1 - stride[2]] + \
+                 in_ptr[pos - 1 - stride[2]] + \
+                 in_ptr[pos + stride[1] + stride[2]] + \
+                 in_ptr[pos - stride[1] + stride[2]] + \
+                 in_ptr[pos + stride[1] - stride[2]] + \
+                 in_ptr[pos - stride[1] - stride[2]]) + \
+       MPI_C4 * (in_ptr[pos + 1 + 2*stride[1]] + \
+                 in_ptr[pos - 1 + 2*stride[1]] + \
+                 in_ptr[pos + 1 - 2*stride[1]] + \
+                 in_ptr[pos - 1 - 2*stride[1]] + \
+                 in_ptr[pos + 1 + 2*stride[2]] + \
+                 in_ptr[pos - 1 + 2*stride[2]] + \
+                 in_ptr[pos + 1 - 2*stride[2]] + \
+                 in_ptr[pos - 1 - 2*stride[2]] + \
+                 in_ptr[pos + stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - stride[1] - 2*stride[2]] + \
+                 in_ptr[pos + 2 + stride[1]] + \
+                 in_ptr[pos - 2 + stride[1]] + \
+                 in_ptr[pos + 2 - stride[1]] + \
+                 in_ptr[pos - 2 - stride[1]] + \
+                 in_ptr[pos + 2 + stride[2]] + \
+                 in_ptr[pos - 2 + stride[2]] + \
+                 in_ptr[pos + 2 - stride[2]] + \
+                 in_ptr[pos - 2 - stride[2]] + \
+                 in_ptr[pos + 2*stride[1] + stride[2]] + \
+                 in_ptr[pos - 2*stride[1] + stride[2]] + \
+                 in_ptr[pos + 2*stride[1] - stride[2]] + \
+                 in_ptr[pos - 2*stride[1] - stride[2]]) + \
+       MPI_C5 * (in_ptr[pos + 2 + 2*stride[1]] + \
+                 in_ptr[pos - 2 + 2*stride[1]] + \
+                 in_ptr[pos + 2 - 2*stride[1]] + \
+                 in_ptr[pos - 2 - 2*stride[1]] + \
+                 in_ptr[pos + 2 + 2*stride[2]] + \
+                 in_ptr[pos - 2 + 2*stride[2]] + \
+                 in_ptr[pos + 2 - 2*stride[2]] + \
+                 in_ptr[pos - 2 - 2*stride[2]] + \
+                 in_ptr[pos + 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + 2*stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - 2*stride[1] - 2*stride[2]]) + \
+       MPI_C6 * (in_ptr[pos + 1 + stride[1] + stride[2]] + \
+                 in_ptr[pos - 1 + stride[1] + stride[2]] + \
+                 in_ptr[pos + 1 - stride[1] + stride[2]] + \
+                 in_ptr[pos - 1 - stride[1] + stride[2]] + \
+                 in_ptr[pos + 1 + stride[1] - stride[2]] + \
+                 in_ptr[pos - 1 + stride[1] - stride[2]] + \
+                 in_ptr[pos + 1 - stride[1] - stride[2]] + \
+                 in_ptr[pos - 1 - stride[1] - stride[2]]) + \
+       MPI_C7 * (in_ptr[pos + 1 + stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - 1 + stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + 1 - stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - 1 - stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + 1 + stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - 1 + stride[1] - 2*stride[2]] + \
+                 in_ptr[pos + 1 - stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - 1 - stride[1] - 2*stride[2]] + \
+                 in_ptr[pos + 1 + 2*stride[1] + stride[2]] + \
+                 in_ptr[pos - 1 + 2*stride[1] + stride[2]] + \
+                 in_ptr[pos + 1 - 2*stride[1] + stride[2]] + \
+                 in_ptr[pos - 1 - 2*stride[1] + stride[2]] + \
+                 in_ptr[pos + 1 + 2*stride[1] - stride[2]] + \
+                 in_ptr[pos - 1 + 2*stride[1] - stride[2]] + \
+                 in_ptr[pos + 1 - 2*stride[1] - stride[2]] + \
+                 in_ptr[pos - 1 - 2*stride[1] - stride[2]] + \
+                 in_ptr[pos + 2 + stride[1] + stride[2]] + \
+                 in_ptr[pos - 2 + stride[1] + stride[2]] + \
+                 in_ptr[pos + 2 - stride[1] + stride[2]] + \
+                 in_ptr[pos - 2 - stride[1] + stride[2]] + \
+                 in_ptr[pos + 2 + stride[1] - stride[2]] + \
+                 in_ptr[pos - 2 + stride[1] - stride[2]] + \
+                 in_ptr[pos + 2 - stride[1] - stride[2]] + \
+                 in_ptr[pos - 2 - stride[1] - stride[2]]) + \
+       MPI_C8 * (in_ptr[pos + 2 + 2*stride[1] + stride[2]] + \
+                 in_ptr[pos - 2 + 2*stride[1] + stride[2]] + \
+                 in_ptr[pos + 2 - 2*stride[1] + stride[2]] + \
+                 in_ptr[pos - 2 - 2*stride[1] + stride[2]] + \
+                 in_ptr[pos + 2 + 2*stride[1] - stride[2]] + \
+                 in_ptr[pos - 2 + 2*stride[1] - stride[2]] + \
+                 in_ptr[pos + 2 - 2*stride[1] - stride[2]] + \
+                 in_ptr[pos - 2 - 2*stride[1] - stride[2]] + \
+                 in_ptr[pos + 2 + stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - 2 + stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + 2 - stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - 2 - stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + 2 + stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - 2 + stride[1] - 2*stride[2]] + \
+                 in_ptr[pos + 2 - stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - 2 - stride[1] - 2*stride[2]] + \
+                 in_ptr[pos + 1 + 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - 1 + 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + 1 - 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - 1 - 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + 1 + 2*stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - 1 + 2*stride[1] - 2*stride[2]] + \
+                 in_ptr[pos + 1 - 2*stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - 1 - 2*stride[1] - 2*stride[2]]) + \
+       MPI_C9 * (in_ptr[pos + 2 + 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - 2 + 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + 2 - 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos - 2 - 2*stride[1] + 2*stride[2]] + \
+                 in_ptr[pos + 2 + 2*stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - 2 + 2*stride[1] - 2*stride[2]] + \
+                 in_ptr[pos + 2 - 2*stride[1] - 2*stride[2]] + \
+                 in_ptr[pos - 2 - 2*stride[1] - 2*stride[2]]) )
 #else
 #define ST_SCRTPT "../stencils/mpi7pt.py"
 #define ST_ITER 8

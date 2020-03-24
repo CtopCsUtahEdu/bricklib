@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  MPI_Comm cart = parseArgs(argc, argv, "cpu");
+  MPI_Comm cart = parseArgs(argc, argv, "cuda");
 
   if (cart != MPI_COMM_NULL) {
 

@@ -100,11 +100,13 @@ MEMFD *MEMFD::duplicate(size_t off) {
   return memfd;
 }
 
-#ifndef DECOMP_PAGEUNALIGN
-
 BrickStorage BrickStorage::mmap_alloc(long chunks, long step) {
   BrickStorage b;
   size_t size = chunks * step * sizeof(bElem);
+  // Pad size to multiple of pagesize
+  long pagesize = sysconf(_SC_PAGESIZE);
+  size += pagesize - 1;
+  size = size - (size & (pagesize - 1));
   auto memfd = new MEMFD(size);
   b.chunks = chunks;
   b.step = step;
@@ -124,5 +126,3 @@ BrickStorage BrickStorage::mmap_alloc(long chunks, long step, void *mmap_fd, siz
   b.mmap_info = memfd;
   return b;
 }
-
-#endif

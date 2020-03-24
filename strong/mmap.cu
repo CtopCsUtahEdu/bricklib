@@ -338,12 +338,16 @@ int main(int argc, char **argv) {
     cudaMemPrefetchAsync(bStorage.dat, bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), device);
   };
 
+  uint8_t *brickStorage_dev;
+  cudaMalloc(&brickStorage_dev, sec_size * (mysec_r - mysec_l) * 2);
   for (unsigned long idx = 0; idx < mysec_r - mysec_l; ++idx) {
     bricks_dev_vec.emplace_back(bInfo_dev, *subdomains[idx].storage[0], 0);
-    bricks_dev_vec.emplace_back(bInfo_dev, *subdomains[idx].storage[1], 0);
-    bricks_dev_vec.emplace_back(bInfo_dev, *subdomains[idx].storage[2], 0);
-    for (int i = 0; i < 3; ++i)
-      moveToGPU(*subdomains[idx].storage[i]);
+    moveToGPU(*subdomains[idx].storage[0]);
+    for (int i = 1; i < 3; ++i) {
+      BrickStorage bStorage_dev = *subdomains[idx].storage[i];
+      bStorage_dev.dat = (bElem *) (brickStorage_dev + sec_size * (idx * 2 + i - 1));
+      bricks_dev_vec.emplace_back(bInfo_dev, bStorage_dev, 0);
+    }
   }
 
   Brick3D *bricks_dev;
