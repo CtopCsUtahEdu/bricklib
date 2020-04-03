@@ -25,7 +25,7 @@ std::vector<long> stride(3), strideb(3), strideg(3);
 
 void brick_stencil(Brick3D &out, Brick3D &in, unsigned *grid_ptr, long skip) {
   auto grid = (unsigned (*)[strideb[1]][strideb[0]]) grid_ptr;
-  long s21 = strideb[2] - skip, s11 = strideb[2] - skip;
+  long s21 = strideb[2] - skip, s11 = strideb[1] - skip;
 #pragma omp parallel for collapse(2)
   for (long tk = skip; tk < s21; ++tk)
     for (long tj = skip; tj < s11; ++tj)

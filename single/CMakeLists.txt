@@ -1,4 +1,4 @@
-VSTARGET(N3AXIS ../stencils/3axis.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../stencils/3axis-out.cpp)
+VSTARGET(N3AXIS ../stencils/3axis.cpp ../stencils/3axis-out.cpp)
 add_executable(single-cpu cpu.cpp ${VSTARGET_N3AXIS_OUTPUT} ../stencils/copy.cpp)
 target_link_libraries(single-cpu brickhelper)
 set_target_properties(single-cpu
@@ -16,7 +16,7 @@ if (HAS_SYCL)
     set(SYCL3AXIS_COMPILE_OPTIONS
             "-fsycl"
             )
-    VSTARGET(SYCL3AXIS ../stencils/3axis_sycl.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../stencils/3axis_sycl-out.cpp)
+    VSTARGET(SYCL3AXIS ../stencils/3axis_sycl.cpp ${CMAKE_CURRENT_BINARY_DIR}/3axis_sycl-out.cpp)
     add_executable(single-sycl sycl.cpp ${VSTARGET_SYCL3AXIS_OUTPUT})
     target_link_libraries(single-sycl brick brickhelper stdc++ sycl OpenCL)
     target_include_directories(single-sycl PUBLIC "${SYCL_DIR}/include")
@@ -29,7 +29,8 @@ if (HAS_SYCL)
 endif ()
 
 if (OpenCL_FOUND)
-    add_executable(single-opencl opencl.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../stencils/3axis_cl.cpp)
+    add_executable(single-opencl opencl.cpp ../stencils/3axis_cl.cpp)
+    target_compile_definitions(single-opencl PRIVATE "CL_KRNL_OPTIONS=\"-I${PROJECT_SOURCE_DIR}/include\"")
     VSTARGET(CL3AXIS ../stencils/3axis_cl_krnl.c ${CMAKE_CURRENT_BINARY_DIR}/3axis_cl_krnl-out.c)
     add_custom_target(cl3axis
             SOURCES ${VSTARGET_CL3AXIS_OUTPUT})
@@ -44,7 +45,7 @@ if (CMAKE_CUDA_COMPILER)
     set(C3AXIS_INCLUDE_DIRS
             "${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}"
             )
-    VSTARGET(C3AXIS ../stencils/3axis.cu ${CMAKE_CURRENT_SOURCE_DIR}/../stencils/3axis-out.cu)
+    VSTARGET(C3AXIS ../stencils/3axis.cu ../stencils/3axis-out.cu)
     add_executable(single-cuda cuda.cpp ${VSTARGET_C3AXIS_OUTPUT})
     target_link_libraries(single-cuda brickhelper)
     set_target_properties(single-cuda

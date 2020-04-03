@@ -44,7 +44,7 @@ void d3pt7() {
   cl::Program brickStencil_prog(program_str);
 
   try {
-    brickStencil_prog.build("-I/home/ztuowen/bricklib/include");
+    brickStencil_prog.build(CL_KRNL_OPTIONS);
   } catch (...) {
     cl_int buildErr = CL_SUCCESS;
     auto buildInfo = brickStencil_prog.getBuildInfo<CL_PROGRAM_BUILD_LOG>(&buildErr);
