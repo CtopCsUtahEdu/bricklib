@@ -94,6 +94,8 @@
  * @{
  */
 typedef bElem vfloat512[512] __attribute__((aligned(64)));
+typedef bElem vfloat256[256] __attribute__((aligned(64)));
+typedef bElem vfloat128[128] __attribute__((aligned(64)));
 typedef bElem vfloat64[64] __attribute__((aligned(64)));
 typedef bElem vfloat8[8] __attribute__((aligned(32)));
 typedef bElem vfloat4[4] __attribute__((aligned(32)));
