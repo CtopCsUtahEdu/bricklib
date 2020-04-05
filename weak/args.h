@@ -8,7 +8,7 @@
 #include <vector>
 #include <mpi.h>
 
-MPI_Comm parseArgs(int argc, char ** argv, const char * program);
+MPI_Comm parseArgs(int argc, char ** argv, const char * program, int dims = 3);
 
 extern std::vector<unsigned> dim_size, dom_size;
 extern size_t tot_elems;

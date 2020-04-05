@@ -4,6 +4,12 @@ target_link_libraries(weak-cpu brick brickhelper ${MPI_CXX_LIBRARIES} ${LIBRT})
 set_target_properties(weak-cpu
         PROPERTIES OUTPUT_NAME cpu)
 
+VSTARGET(N4MPI main-4d.cpp main-4d-out.cpp)
+add_executable(weak-cpu-4d ${VSTARGET_N4MPI_OUTPUT} args.cpp)
+target_link_libraries(weak-cpu-4d brick brickhelper ${MPI_CXX_LIBRARIES} ${LIBRT})
+set_target_properties(weak-cpu-4d
+        PROPERTIES OUTPUT_NAME cpu-4d)
+
 VSTARGET(N3MPI_ONESIDED onesided.cpp onesided-out.cpp)
 add_executable(weak-onesided ${VSTARGET_N3MPI_ONESIDED_OUTPUT})
 target_link_libraries(weak-onesided brick brickhelper ${MPI_CXX_LIBRARIES} ${LIBRT})

@@ -28,8 +28,8 @@ namespace {
       "Example usage:\n"
       "  %s -d 2048,2048,2048\n";
 
-  void parse3Tuple(std::string istr, std::vector<unsigned> &out) {
-    for (int i = 0; i < 3; ++i) {
+  void parseTuple(std::string istr, std::vector<unsigned> &out, int dims) {
+    for (int i = 0; i < dims; ++i) {
       int r = istr.find(',');
       r = r < 0 ? istr.length() : r;
       out[i] = std::stoi(istr.substr(0, r));
@@ -43,23 +43,23 @@ std::vector<unsigned> dim_size, dom_size;
 size_t tot_elems;
 int MPI_ITER;
 
-MPI_Comm parseArgs(int argc, char **argv, const char *program) {
+MPI_Comm parseArgs(int argc, char **argv, const char *program, int dims) {
   int c;
   bool bin = false;
   int sel = 0;
-  dom_size.resize(3);
-  dim_size.resize(3);
+  dom_size.resize(dims);
+  dim_size.resize(dims);
   while ((c = getopt(argc, argv, shortopt)) != -1) {
     switch (c) {
       case 'b':
         bin = true;
         break;
       case 'd':
-        parse3Tuple(optarg, dom_size);
+        parseTuple(optarg, dom_size, dims);
         sel = sel != 0 ? -2 : 1;
         break;
       case 's':
-        parse3Tuple(optarg, dom_size);
+        parseTuple(optarg, dom_size, dims);
         sel = sel != 0 ? -2 : 2;
         break;
       case 'I':
@@ -82,7 +82,8 @@ MPI_Comm parseArgs(int argc, char **argv, const char *program) {
 
   if (sel == 0) {
     sel = 2;
-    dom_size[0] = dom_size[1] = dom_size[2] = 128;
+    for (int i = 0; i < dims; ++i)
+      dom_size[i] = 64;
   }
 
   MPI_Comm comm = MPI_COMM_WORLD;
@@ -94,38 +95,38 @@ MPI_Comm parseArgs(int argc, char **argv, const char *program) {
 
   if (bin) {
     int b = 0, s = 1;
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < dims; ++i)
       dim_size[i] = 1;
     while (s * 2 < size) {
-      dim_size[b % 3] *= 2;
+      dim_size[b % dims] *= 2;
       ++b;
       s *= 2;
     }
   } else
-    MPI_Dims_create(size, 3, (int *) dim_size.data());
+    MPI_Dims_create(size, dims, (int *) dim_size.data());
 
-  int period[3] = {1, 1, 1};
-  MPI_Cart_create(MPI_COMM_WORLD, 3, (int *) dim_size.data(), period, true, &comm);
+  std::vector<int> period(dims, 1);
+  MPI_Cart_create(MPI_COMM_WORLD, dims, (int *) dim_size.data(), period.data(), true, &comm);
 
   if (comm != MPI_COMM_NULL) {
     MPI_Comm_size(comm, &size);
     MPI_Comm_rank(comm, &rank);
 
     int coo[3];
-    MPI_Cart_get(comm, 3, (int *) dim_size.data(), period, coo);
+    MPI_Cart_get(comm, dims, (int *) dim_size.data(), period.data(), coo);
 
     // Split domain size
     if (sel == 1) {
       tot_elems = 1;
-      for (int i = 0; i < 3; ++i) {
+      for (int i = 0; i < dims; ++i) {
         tot_elems *= dom_size[i];
         dom_size[i] = dom_size[i] / TILE;
-        unsigned s = (unsigned) dom_size[i] % dim_size[2 - i];
-        dom_size[i] = (dom_size[i] / dim_size[2 - i] + (s > coo[i] ? 1 : 0)) * TILE;
+        unsigned s = (unsigned) dom_size[i] % dim_size[dims - 1 - i];
+        dom_size[i] = (dom_size[i] / dim_size[dims - 1 - i] + (s > coo[i] ? 1 : 0)) * TILE;
       }
     } else {
       tot_elems = size;
-      for (int i = 0; i < 3; ++i)
+      for (int i = 0; i < dims; ++i)
         tot_elems *= dom_size[i];
     }
 
@@ -136,8 +137,10 @@ MPI_Comm parseArgs(int argc, char **argv, const char *program) {
       long page_size = sysconf(_SC_PAGESIZE);
       std::cout << "Pagesize " << page_size << "; MPI Size " << size << " * OpenMP threads " << numthreads << std::endl;
       std::cout << "Domain size of " << tot_elems << " split among" << std::endl;
-      std::cout << "A total of " << size << " processes "
-                << dim_size[0] << "x" << dim_size[1] << "x" << dim_size[2] << std::endl;
+      std::cout << "A total of " << size << " processes " << dim_size[0];
+      for (int i = 1; i < dims; ++i)
+        std::cout << "x" << dim_size[1];
+      std::cout << std::endl;
     }
   }
 

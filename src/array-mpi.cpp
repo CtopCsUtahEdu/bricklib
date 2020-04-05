@@ -4,5 +4,5 @@
 
 #include "array-mpi.h"
 
-std::vector<bElem *> arr_buffers_out(26, nullptr);
-std::vector<bElem *> arr_buffers_recv(26, nullptr);
+std::vector<bElem *> arr_buffers_out;
+std::vector<bElem *> arr_buffers_recv;
