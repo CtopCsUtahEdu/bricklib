@@ -27,7 +27,7 @@
 #undef ST_ITER
 #undef ST_SCRTPT
 #define TILE 4
-#define GZ 4
+#define GZ (2 * TILE)
 #define PADDING 4
 #define BDIM TILE,TILE,TILE,TILE
 
@@ -42,6 +42,7 @@
 
 // Setting for X86 with at least AVX2 support
 #include <immintrin.h>
+
 #define VSVEC "AVX2"
 #define VFOLD 2,2
 
@@ -52,7 +53,7 @@
 
 #endif
 
-#define ST_ITER 4
+#define ST_ITER GZ
 #define DIMS 4
 #define ST_SCRTPT "../stencils/mpi9pt.py"
 
@@ -61,24 +62,14 @@ std::vector<long> stride(DIMS), strideb(DIMS), strideg(DIMS);
 
 void brick_stencil(Brick4D &out, Brick4D &in, unsigned *grid_ptr, long skip) {
   auto grid = (unsigned (*)[strideb[2]][strideb[1]][strideb[0]]) grid_ptr;
-  long s31 = strideb[3] - skip, s21 = strideb[2] - skip, s11 = strideb[1] - skip;
+  long s = skip / TILE;
+  long s31 = strideb[3] - s, s21 = strideb[2] - s, s11 = strideb[1] - s;
 #pragma omp parallel for collapse(2)
-  for (long tl = skip; tl < s31; ++tl)
-    for (long tk = skip; tk < s21; ++tk)
-      for (long tj = skip; tj < s11; ++tj)
-        for (long ti = skip; ti < strideb[0] - skip; ++ti) {
+  for (long tl = s; tl < s31; ++tl)
+    for (long tk = s; tk < s21; ++tk)
+      for (long tj = s; tj < s11; ++tj)
+        for (long ti = s; ti < strideb[0] - s; ++ti) {
           unsigned b = grid[tl][tk][tj][ti];
-          /*
-          for (int l = 0; l < TILE; ++l)
-            for (int k = 0; k < TILE; ++k)
-              for (int j = 0; j < TILE; ++j)
-                for (int i = 0; i < TILE; ++i)
-                  out[b][l][k][j][i] = (in[b][l + 1][k][j][i] + in[b][l - 1][k][j][i] +
-                                        in[b][l][k + 1][j][i] + in[b][l][k - 1][j][i] +
-                                        in[b][l][k][j + 1][i] + in[b][l][k][j - 1][i] +
-                                        in[b][l][k][j][i + 1] + in[b][l][k][j][i - 1]) * 0.1 +
-                                       in[b][l][k][j][i] * 0.2;
-                                       */
           brick(ST_SCRTPT, VSVEC, (BDIM), (VFOLD), b);
         }
 };
@@ -107,8 +98,8 @@ int main(int argc, char **argv) {
     MPI_Cart_get(cart, DIMS, (int *) dim_size.data(), prd, coo);
 
     for (int i = 0; i < DIMS; ++i) {
-      stride[i] = dom_size[i] + 2 * TILE + 2 * GZ;
-      strideg[i] = dom_size[i] + 2 * TILE;
+      stride[i] = dom_size[i] + 2 * GZ + 2 * PADDING;
+      strideg[i] = dom_size[i] + 2 * GZ;
       strideb[i] = strideg[i] / TILE;
     }
 
@@ -175,15 +166,15 @@ int main(int argc, char **argv) {
     auto array_stencil = [&](bElem *arrOut_ptr, bElem *arrIn_ptr, long skip) -> void {
       auto arrIn = (bElem (*)[stride[2]][stride[1]][stride[0]]) arrIn_ptr;
       auto arrOut = (bElem (*)[stride[2]][stride[1]][stride[0]]) arrOut_ptr;
-      long skip2 = (skip / TILE) * TILE;
-      long s30 = PADDING + skip, s31 = PADDING + strideg[3];
-      long s20 = PADDING + skip, s21 = PADDING + strideg[2];
-      long s10 = PADDING + skip, s11 = PADDING + strideg[1];
+      long s = (skip / TILE) * TILE;
+      long s30 = PADDING + s, s31 = PADDING + strideg[3];
+      long s20 = PADDING + s, s21 = PADDING + strideg[2];
+      long s10 = PADDING + s, s11 = PADDING + strideg[1];
 #pragma omp parallel for collapse(2)
       for (long tl = s30; tl < s31; tl += TILE)
         for (long tk = s20; tk < s21; tk += TILE)
           for (long tj = s10; tj < s11; tj += TILE)
-            for (long ti = PADDING + skip2; ti < PADDING + strideg[0] - skip2; ti += TILE)
+            for (long ti = PADDING + s; ti < PADDING + strideg[0] - s; ti += TILE)
               for (long l = tl; l < tl + TILE; ++l)
                 for (long k = tk; k < tk + TILE; ++k)
                   for (long j = tj; j < tj + TILE; ++j)
@@ -226,10 +217,10 @@ int main(int argc, char **argv) {
       double t_a = omp_get_wtime();
       array_stencil(out_ptr, in_ptr, 0);
       for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
-        array_stencil(in_ptr, out_ptr, 0);
-        array_stencil(out_ptr, in_ptr, 0);
+        array_stencil(in_ptr, out_ptr, i * 2 + 1);
+        array_stencil(out_ptr, in_ptr, i * 2 + 2);
       }
-      array_stencil(in_ptr, out_ptr, TILE);
+      array_stencil(in_ptr, out_ptr, GZ);
       double t_b = omp_get_wtime();
       calctime += t_b - t_a;
 #endif
@@ -269,10 +260,10 @@ int main(int argc, char **argv) {
       double t_a = omp_get_wtime();
       brick_stencil(bOut, bIn, grid_ptr, 0);
       for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
-        brick_stencil(bIn, bOut, grid_ptr, 0);
-        brick_stencil(bOut, bIn, grid_ptr, 0);
+        brick_stencil(bIn, bOut, grid_ptr, i * 2 + 1);
+        brick_stencil(bOut, bIn, grid_ptr, i * 2 + 2);
       }
-      brick_stencil(bIn, bOut, grid_ptr, 1);
+      brick_stencil(bIn, bOut, grid_ptr, GZ);
       double t_b = omp_get_wtime();
       calctime += t_b - t_a;
 #endif
