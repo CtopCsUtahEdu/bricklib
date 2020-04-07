@@ -514,7 +514,7 @@ public:
       // Send buffer
       BitSet in = !n;
       for (auto s: skin)
-        if (s.neighbor.set == in.set) {
+        if (s.neighbor.set == in.set && s.len) {
           packing.push_back(s.pos * bStorage.step * sizeof(bElem));
           packing.push_back(s.len * bStorage.step * sizeof(bElem));
         }

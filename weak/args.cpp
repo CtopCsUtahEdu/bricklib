@@ -139,7 +139,7 @@ MPI_Comm parseArgs(int argc, char **argv, const char *program, int dims) {
       std::cout << "Domain size of " << tot_elems << " split among" << std::endl;
       std::cout << "A total of " << size << " processes " << dim_size[0];
       for (int i = 1; i < dims; ++i)
-        std::cout << "x" << dim_size[1];
+        std::cout << "x" << dim_size[i];
       std::cout << std::endl;
     }
   }
