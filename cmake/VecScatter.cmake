@@ -1,8 +1,8 @@
 # Configure Vector Scatter
 
 find_package(Python 3.6 REQUIRED COMPONENTS Interpreter)
-set(VecScatter_SCRIPT ${PROJECT_SOURCE_DIR}/codegen/vecscatter)
-set(VecScatter_MODULE ${PROJECT_SOURCE_DIR}/codegen)
+set(VecScatter_SCRIPT ${BRICK_PROJECT_PATH}/codegen/vecscatter)
+set(VecScatter_MODULE ${BRICK_PROJECT_PATH}/codegen)
 
 macro(VSTARGET Name Input Output)
     get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
