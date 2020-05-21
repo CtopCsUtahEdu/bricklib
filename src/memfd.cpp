@@ -111,7 +111,9 @@ BrickStorage BrickStorage::mmap_alloc(long chunks, long step) {
   b.chunks = chunks;
   b.step = step;
   // Brick compute use the canonical view
-  b.dat = (bElem *) memfd->packed_pointer({0, size});
+  b.dat = std::shared_ptr<bElem>((bElem *) memfd->packed_pointer({0, size}), [size](bElem *p) {
+    MEMFD::free(p, size);
+  });
   b.mmap_info = memfd;
   return b;
 }
@@ -122,7 +124,9 @@ BrickStorage BrickStorage::mmap_alloc(long chunks, long step, void *mmap_fd, siz
   auto memfd = static_cast<MEMFD *>(mmap_fd)->duplicate(offset);
   b.chunks = chunks;
   b.step = step;
-  b.dat = (bElem *) memfd->packed_pointer({0, size});
+  b.dat = std::shared_ptr<bElem>((bElem *) memfd->packed_pointer({0, size}), [size](bElem *p) {
+    MEMFD::free(p, size);
+  });
   b.mmap_info = memfd;
   return b;
 }

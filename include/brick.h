@@ -8,6 +8,7 @@
 
 #include <stdlib.h>
 #include <type_traits>
+#include <memory>
 #include "vecscatter.h"
 
 /// BrickStorage allocation alignment
@@ -47,7 +48,7 @@ struct static_power<base, 0> {
  */
 struct BrickStorage {
   /// Pointer holding brick data
-  bElem *dat;
+  std::shared_ptr<bElem> dat;
   /**
    * @brief Number of chunks
    *
@@ -64,7 +65,7 @@ struct BrickStorage {
     BrickStorage b;
     b.chunks = chunks;
     b.step = step;
-    b.dat = (bElem *) aligned_alloc(ALIGN, chunks * step * sizeof(bElem));
+    b.dat = std::shared_ptr<bElem>((bElem*)aligned_alloc(ALIGN, chunks * step * sizeof(bElem)));
     return b;
   }
 
@@ -357,6 +358,7 @@ struct Brick<Dim<BDims...>, Dim<Folds...> > {
   myBrickInfo *bInfo;        ///< Pointer to (possibly shared) metadata
   unsigned step;             ///< Spacing between bricks in unit of bElem (BrickStorage)
   bElem *dat;                ///< Offsetted memory (BrickStorage)
+  BrickStorage bStorage;
 
   /// Indexing operator returns: @ref _BrickAccessor
   FORCUDA
@@ -381,8 +383,9 @@ struct Brick<Dim<BDims...>, Dim<Folds...> > {
    * @param offset Offset within the brick storage in number of elements, eg. is a multiple of 512 for 8x8x8 bricks
    */
   FORCUDA
-  Brick(myBrickInfo *bInfo, const BrickStorage &bStorage, unsigned offset) : bInfo(bInfo) {
-    dat = bStorage.dat + offset;
+  Brick(myBrickInfo *bInfo, const BrickStorage &brickStorage, unsigned offset) : bInfo(bInfo) {
+    bStorage = brickStorage;
+    dat = bStorage.dat.get() + offset;
     step = (unsigned) bStorage.step;
   }
 };
