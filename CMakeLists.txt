@@ -20,7 +20,7 @@ if (CMAKE_CUDA_COMPILER)
 endif ()
 
 find_package(OpenMP REQUIRED)
-find_package(MPI REQUIRED)
+find_package(MPI)
 find_package(OpenCL 2.0)
 
 option(USE_MEMFD "Using memfd instead of shm_open, supported on Linux >= 3.17 with \"CONFIG_MEMFD_CREATE\"" OFF)
@@ -97,16 +97,23 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${CMAKE_CXX_FLAGS}\"")
 
 include_directories(
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        ${MPI_CXX_HEADER_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+if (MPI_FOUND)
+    include_directories(
+        ${MPI_CXX_HEADER_DIR}
+    )
+endif()
 
 add_subdirectory(src)
 if (BRICK_BUILD_TEST)
     add_subdirectory(single)
-    add_subdirectory(weak)
-    add_subdirectory(strong)
+    if (MPI_FOUND)
+        add_subdirectory(weak)
+        add_subdirectory(strong)
+    endif()
 endif ()
 
 # Install headers
