@@ -15,7 +15,6 @@
 #include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#include <mpi.h>
 
 class MEMFD {
 private:

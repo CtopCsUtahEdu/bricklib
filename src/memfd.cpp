@@ -3,7 +3,7 @@
 //
 
 #include "memfd.h"
-#include "brick-mpi.h"
+#include "brick.h"
 #include <sys/stat.h>        /* For mode constants */
 #include <fcntl.h>           /* For O_* constants */
 
