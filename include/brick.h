@@ -65,7 +65,7 @@ struct BrickStorage {
     BrickStorage b;
     b.chunks = chunks;
     b.step = step;
-    b.dat = std::shared_ptr<bElem>((bElem*)aligned_alloc(ALIGN, chunks * step * sizeof(bElem)));
+    b.dat = std::shared_ptr<bElem>((bElem*)aligned_alloc(ALIGN, chunks * step * sizeof(bElem)), free);
     return b;
   }
 
