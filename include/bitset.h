@@ -68,7 +68,7 @@ typedef struct BitSet {
 
   /// The number of elements currently stored in the set
   inline long size() const {
-    return __builtin_popcount(set);
+    return __builtin_popcountl(set);
   }
 
   /// Return whether a number is in the set
