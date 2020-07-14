@@ -382,7 +382,6 @@ struct Brick<Dim<BDims...>, Dim<Folds...> > {
    * @param bStorage Brick storage (memory region)
    * @param offset Offset within the brick storage in number of elements, eg. is a multiple of 512 for 8x8x8 bricks
    */
-  FORCUDA
   Brick(myBrickInfo *bInfo, const BrickStorage &brickStorage, unsigned offset) : bInfo(bInfo) {
     bStorage = brickStorage;
     dat = bStorage.dat.get() + offset;

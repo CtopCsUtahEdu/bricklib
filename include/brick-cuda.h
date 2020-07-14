@@ -15,7 +15,9 @@
 #ifndef NDEBUG
 #define cudaCheck(x) x
 #else
+
 #include <cstdio>
+
 #define cudaCheck(x) _cudaCheck(x, #x ,__FILE__, __LINE__)
 #endif
 
@@ -55,8 +57,10 @@ inline BrickStorage movBrickStorage(BrickStorage &bStorage, cudaMemcpyKind kind)
   // Make a copy
   BrickStorage ret = bStorage;
   unsigned size = bStorage.step * bStorage.chunks * sizeof(bElem);
-  cudaCheck(cudaMalloc(&ret.dat, size));
-  cudaCheck(cudaMemcpy(ret.dat, bStorage.dat, size, kind));
+  bElem *devptr;
+  cudaCheck(cudaMalloc(&devptr, size));
+  cudaCheck(cudaMemcpy(devptr, bStorage.dat.get(), size, kind));
+  ret.dat = std::shared_ptr<bElem>(devptr, [](bElem *p) { cudaFree(p); });
   return ret;
 }
 
