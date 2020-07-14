@@ -252,8 +252,8 @@ int main(int argc, char **argv) {
 #ifndef CUDA_AWARE
       {
         double t_a = omp_get_wtime();
-        cudaMemcpy(bStorage.dat + bStorage.step * bDecomp.sep_pos[0],
-                   bStorage_dev.dat + bStorage.step * bDecomp.sep_pos[0],
+        cudaMemcpy(bStorage.dat.get() + bStorage.step * bDecomp.sep_pos[0],
+                   bStorage_dev.dat.get() + bStorage.step * bDecomp.sep_pos[0],
                    bStorage.step * (bDecomp.sep_pos[1] - bDecomp.sep_pos[0]) * sizeof(bElem),
                    cudaMemcpyDeviceToHost);
         double t_b = omp_get_wtime();
@@ -264,8 +264,8 @@ int main(int argc, char **argv) {
         ev.exchange();
 #endif
         t_a = omp_get_wtime();
-        cudaMemcpy(bStorage_dev.dat + bStorage.step * bDecomp.sep_pos[1],
-                   bStorage.dat + bStorage.step * bDecomp.sep_pos[1],
+        cudaMemcpy(bStorage_dev.dat.get() + bStorage.step * bDecomp.sep_pos[1],
+                   bStorage.dat.get() + bStorage.step * bDecomp.sep_pos[1],
                    bStorage.step * (bDecomp.sep_pos[2] - bDecomp.sep_pos[1]) * sizeof(bElem),
                    cudaMemcpyHostToDevice);
         t_b = omp_get_wtime();
@@ -291,7 +291,7 @@ int main(int argc, char **argv) {
     cnt *= ST_ITER;
 
     // Copy back
-    cudaMemcpy(bStorageOut.dat, bStorageOut_dev.dat, bStorageOut.step * bStorageOut.chunks * sizeof(bElem),
+    cudaMemcpy(bStorageOut.dat.get(), bStorageOut_dev.dat.get(), bStorageOut.step * bStorageOut.chunks * sizeof(bElem),
                cudaMemcpyDeviceToHost);
     {
       mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
@@ -327,15 +327,10 @@ int main(int argc, char **argv) {
     free(out_ptr);
     free(in_ptr);
 
-#ifdef DECOMP_PAGEUNALIGN
-    free(bStorage.dat);
-    free(bStorageOut.dat);
-#else
+#ifndef DECOMP_PAGEUNALIGN
     ((MEMFD *) bStorage.mmap_info)->cleanup();
     ((MEMFD *) bStorageOut.mmap_info)->cleanup();
 #endif
-    cudaFree(bStorage_dev.dat);
-    cudaFree(bStorageOut_dev.dat);
   }
 
   MPI_Finalize();

@@ -26,7 +26,7 @@ void MEMFD::free(void *ptr, size_t length) {
   if (it_st == allocated.end())
     return;
   auto it_ed = allocated.find(ptr);
-  while (*it_ed < (char *) ptr + length)
+  while (it_ed != allocated.end() && *it_ed < (char *) ptr + length)
     it_ed++;
   allocated.erase(it_st, it_ed);
 }

@@ -431,10 +431,10 @@ public:
 
     for (int i = 0; i < ghost.size(); ++i) {
       // receive to ghost[i]
-      MPI_Irecv(&(bStorage.dat[ghost[i].pos * bStorage.step]), ghost[i].len * bStorage.step * sizeof(bElem),
+      MPI_Irecv(&(bStorage.dat.get()[ghost[i].pos * bStorage.step]), ghost[i].len * bStorage.step * sizeof(bElem),
                 MPI_CHAR, rank_map[ghost[i].neighbor.set], i, comm, &(requests[i << 1]));
       // send from skin[i]
-      MPI_Isend(&(bStorage.dat[skin[i].pos * bStorage.step]), skin[i].len * bStorage.step * sizeof(bElem),
+      MPI_Isend(&(bStorage.dat.get()[skin[i].pos * bStorage.step]), skin[i].len * bStorage.step * sizeof(bElem),
                 MPI_CHAR, rank_map[skin[i].neighbor.set], i, comm, &(requests[(i << 1) + 1]));
     }
 

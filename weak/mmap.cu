@@ -237,11 +237,11 @@ int main(int argc, char **argv) {
     ExchangeView ev = bDecomp.exchangeView(bStorage);
 #endif
 
-    cudaCheck(cudaMemAdvise(bStorage.dat,
+    cudaCheck(cudaMemAdvise(bStorage.dat.get(),
                             bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), cudaMemAdviseSetPreferredLocation,
                             device));
 
-    cudaMemPrefetchAsync(bStorage.dat, bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), device);
+    cudaMemPrefetchAsync(bStorage.dat.get(), bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), device);
 
     cudaMemPrefetchAsync(grid_ptr, STRIDEB * STRIDEB * STRIDEB * sizeof(unsigned), device);
 

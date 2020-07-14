@@ -42,10 +42,6 @@ struct Subdomain {
     for (auto bStorage: storage)
       if (bStorage.mmap_info != nullptr)
         ((MEMFD *) bStorage.mmap_info)->cleanup();
-      else
-        free(bStorage.dat);
-    for (auto bStorage: storage_dev)
-      cudaFree(bStorage.dat);
   }
 };
 
@@ -204,8 +200,8 @@ int main(int argc, char **argv) {
           if (dst == rank) {
             // Internal - record the link
             RegionLink rlink;
-            rlink.to = s.storage_dev[0].dat + bDecomp.ghost[i].pos * s.storage[0].step;
-            rlink.from = subdomains[sub].storage_dev[0].dat + bDecomp.skin[i].pos * s.storage[0].step;
+            rlink.to = s.storage_dev[0].dat.get() + bDecomp.ghost[i].pos * s.storage[0].step;
+            rlink.from = subdomains[sub].storage_dev[0].dat.get() + bDecomp.skin[i].pos * s.storage[0].step;
             rlink.len = len;
             links.push_back(rlink);
           } else {
@@ -369,7 +365,7 @@ int main(int argc, char **argv) {
   for (auto &sview: sendViews) {
     for (auto &sreg: sendReg[sview.rank]) {
       RegionLink rlink;
-      rlink.from = sreg.storage_dev->dat + sreg.storage->step * sreg.pos;
+      rlink.from = sreg.storage_dev->dat.get() + sreg.storage->step * sreg.pos;
       rlink.to = (double *) (((uint8_t *) sview.reg) + sreg.offset);
       rlink.len = sreg.len;
       pack_links.push_back(rlink);
@@ -383,7 +379,7 @@ int main(int argc, char **argv) {
     for (auto &rreg: recvReg[rview.rank]) {
       RegionLink rlink;
       rlink.from = (double *) (((uint8_t *) rview.reg) + rreg.offset);
-      rlink.to = rreg.storage_dev->dat + rreg.storage->step * rreg.pos;
+      rlink.to = rreg.storage_dev->dat.get() + rreg.storage->step * rreg.pos;
       rlink.len = rreg.len;
       unpack_links.push_back(rlink);
     }
@@ -509,7 +505,7 @@ int main(int argc, char **argv) {
     for (auto &sview: sendViews) {
       size_t pos = 0;
       for (auto &sreg: sendReg[sview.rank]) {
-        cudaMemcpyAsync(((uint8_t *) sview.reg) + pos, sreg.storage_dev->dat + sreg.storage->step * sreg.pos, sreg.len,
+        cudaMemcpyAsync(((uint8_t *) sview.reg) + pos, sreg.storage_dev->dat.get() + sreg.storage->step * sreg.pos, sreg.len,
                         cudaMemcpyDeviceToDevice);
         pos += sreg.len;
       }

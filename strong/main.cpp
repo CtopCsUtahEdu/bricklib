@@ -46,8 +46,6 @@ struct Subdomain {
     for (auto bStorage: storage)
       if (bStorage->mmap_info != nullptr)
         ((MEMFD *) bStorage->mmap_info)->cleanup();
-      else
-        free(bStorage->dat);
   }
 };
 
@@ -207,7 +205,7 @@ int main(int argc, char **argv) {
           if (dst == rank) {
             // Internal - link the ghost to the source's skin
             // un-map the ghost region
-            bElem *st = s.storage[0]->dat + bDecomp.ghost[i].pos * s.storage[0]->step;
+            bElem *st = s.storage[0]->dat.get() + bDecomp.ghost[i].pos * s.storage[0]->step;
             int ret = munmap(st, len);
             if (ret != 0)
               throw std::runtime_error("Unmap failed");
@@ -221,7 +219,7 @@ int main(int argc, char **argv) {
                                         std::forward_as_tuple()).first;
             // Un-map the ghost region
             long spos = bDecomp.ghost[i].pos * s.storage[0]->step;
-            int ret = munmap(s.storage[0]->dat + spos, len);
+            int ret = munmap(s.storage[0]->dat.get() + spos, len);
             if (ret != 0)
               throw std::runtime_error("Unmap failed");
             long last_mfd = -1;
@@ -249,7 +247,7 @@ int main(int argc, char **argv) {
                       ->map_pointer(hint, last_pos, last_size);
                 }
                 last_mfd = p->second.i;
-                hint = s.storage[0]->dat + spos;
+                hint = s.storage[0]->dat.get() + spos;
                 last_pos = p->second.pos * sizeof(bElem);
                 last_size = p->second.len;
               }
