@@ -43,7 +43,7 @@ class BackendAVX512(Backend):
         name = self.gridref_name(grid)
         block.append("bElem *{} = &{};".format(
             name, self.layout.elem(grid, [0] * len(self.codegen.TILE_DIM))))
-        block.append("__builtin_assume_aligned({}, 64);".format(name))
+        block.append("{} = (bElem *)__builtin_assume_aligned({}, 64);".format(name, name))
         return name
 
     def genVectorLoop(self, group: CodeBlock):
@@ -54,7 +54,7 @@ class BackendAVX512(Backend):
         return g
 
     def genStoreLoop(self, group: CodeBlock):
-        group.append("#pragma vector nontemporal")
+        group.append("#pragma omp simd")
         group.append("for (long sti = 0; sti < {}; ++sti)".format(self.codegen.TILE_SIZE))
 
     def gen_lhs(self, buf: Buffer, offset: List[int], rel=None, dimrels=None):

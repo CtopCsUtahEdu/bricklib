@@ -3,7 +3,7 @@
 //
 
 #include "memfd.h"
-#include "brick-mpi.h"
+#include "brick.h"
 #include <sys/stat.h>        /* For mode constants */
 #include <fcntl.h>           /* For O_* constants */
 
@@ -26,7 +26,7 @@ void MEMFD::free(void *ptr, size_t length) {
   if (it_st == allocated.end())
     return;
   auto it_ed = allocated.find(ptr);
-  while (*it_ed < (char *) ptr + length)
+  while (it_ed != allocated.end() && *it_ed < (char *) ptr + length)
     it_ed++;
   allocated.erase(it_st, it_ed);
 }
@@ -111,7 +111,9 @@ BrickStorage BrickStorage::mmap_alloc(long chunks, long step) {
   b.chunks = chunks;
   b.step = step;
   // Brick compute use the canonical view
-  b.dat = (bElem *) memfd->packed_pointer({0, size});
+  b.dat = std::shared_ptr<bElem>((bElem *) memfd->packed_pointer({0, size}), [size](bElem *p) {
+    MEMFD::free(p, size);
+  });
   b.mmap_info = memfd;
   return b;
 }
@@ -122,7 +124,9 @@ BrickStorage BrickStorage::mmap_alloc(long chunks, long step, void *mmap_fd, siz
   auto memfd = static_cast<MEMFD *>(mmap_fd)->duplicate(offset);
   b.chunks = chunks;
   b.step = step;
-  b.dat = (bElem *) memfd->packed_pointer({0, size});
+  b.dat = std::shared_ptr<bElem>((bElem *) memfd->packed_pointer({0, size}), [size](bElem *p) {
+    MEMFD::free(p, size);
+  });
   b.mmap_info = memfd;
   return b;
 }
