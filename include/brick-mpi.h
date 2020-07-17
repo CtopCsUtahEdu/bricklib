@@ -82,11 +82,13 @@ struct grid_access {
 struct ExchangeView {
   MPI_Comm comm;
   std::vector<size_t> seclen;
+  std::vector<size_t> first_pad;
   typedef std::vector<std::pair<int, void *>> Dest;
   Dest send, recv;
 
-  ExchangeView(MPI_Comm comm, std::vector<size_t> seclen, Dest send, Dest recv) :
-      comm(comm), seclen(std::move(seclen)), send(std::move(send)), recv(std::move(recv)) {}
+  ExchangeView(MPI_Comm comm, std::vector<size_t> seclen, std::vector<size_t> first_pad, Dest send, Dest recv) :
+      comm(comm), seclen(std::move(seclen)), first_pad(std::move(first_pad)),
+      send(std::move(send)), recv(std::move(recv)) {}
 
   /**
    * @brief Exchange all ghost zones
@@ -103,9 +105,11 @@ struct ExchangeView {
 
     for (int i = 0; i < seclen.size(); ++i) {
       // receive to ghost[i]
-      MPI_Irecv(recv[i].second, seclen[i], MPI_CHAR, recv[i].first, i, comm, &(requests[i << 1]));
+      MPI_Irecv((uint8_t *) recv[i].second + first_pad[i], seclen[i], MPI_CHAR, recv[i].first, i, comm,
+                &(requests[i << 1]));
       // send from skin[i]
-      MPI_Isend(send[i].second, seclen[i], MPI_CHAR, send[i].first, i, comm, &(requests[(i << 1) + 1]));
+      MPI_Isend((uint8_t *) send[i].second + first_pad[i], seclen[i], MPI_CHAR, send[i].first, i, comm,
+                &(requests[(i << 1) + 1]));
     }
 
     ed = omp_get_wtime();
@@ -184,6 +188,8 @@ public:
     unsigned skin_ed;    ///< ending index in the skin list (not included)
     unsigned pos;        ///< starting from which brick
     unsigned len;        ///< ending at which brick (not included)
+    unsigned first_pad;
+    unsigned last_pad;
   } g_region;
   std::vector<g_region> ghost;      ///< ghost regions record
   std::vector<g_region> skin;       ///< surface regions record
@@ -224,7 +230,7 @@ private:
       sec = -1;
       st = g_depth[d];
     }
-    if (sec)
+    if (sec != 0)
       for (unsigned i = 0; i < g_depth[d]; ++i)
         _populate(region, ref + (st + i) * stride[d], d - 1, pos);
     else
@@ -245,6 +251,16 @@ private:
         ref -= dims[d] * stride[d];
     }
     _populate(region, ref, dim - 1, pos);
+  }
+
+  long get_region_size(BitSet region) {
+    long ret = 1;
+    for (long d = 1; d <= dim; ++d)
+      if (region.get(d) || region.get(-d))
+        ret *= g_depth[d - 1];
+      else
+        ret *= dims[d - 1] - 2 * g_depth[d - 1];
+    return ret;
   }
 
   void _adj_populate(long ref, unsigned d, unsigned idx, unsigned *adj) {
@@ -343,19 +359,38 @@ public:
 #endif
     };
 
+    auto calc_pad = [&factor, this](const BitSet &region) -> long {
+      return factor - (get_region_size(region) + factor - 1) % factor - 1;
+    };
+
+    std::vector<unsigned> st_pos;  // The starting position of a segment
+    std::vector<bool> pad_first;
+
+    BitSet last = 0;
+    for (long i = 0; i < skinlist.size(); ++i) {
+      BitSet next = 0;
+      if (i < skinlist.size() - 1)
+        next = skinlist[i + 1];
+      pad_first.push_back(((last & skinlist[i]).size() < (skinlist[i] & next).size()));
+      last = skinlist[i];
+    }
+
     // Allocating inner region
     mypop(0, 0);
 
-    std::vector<unsigned> st_pos;
     st_pos.emplace_back(pos);
     sep_pos[0] = pos;
 
     skin_size.clear();
     // Allocating skinlist
-    for (auto i: skinlist) {
+    for (long i = 0; i < skinlist.size(); ++i) {
       long ppos = pos;
-      if (i.set != 0)
-        mypop(0, i);
+#ifndef DECOMP_PAGEUNALIGN
+      if (pad_first[i])
+        pos += calc_pad(skinlist[i]);
+#endif
+      if (skinlist[i].set != 0)
+        mypop(0, skinlist[i]);
       st_pos.emplace_back(pos);
       skin_size.emplace_back(pos - ppos);
     }
@@ -383,25 +418,34 @@ public:
           if (last < 0) {
             last = l;
             i.skin_st = g.skin_st = (unsigned) last;
+            i.first_pad = g.first_pad = pad_first[last] ? calc_pad(skinlist[last]) : 0;
             g.pos = pos;
             i.pos = st_pos[last];
           }
+#ifndef DECOMP_PAGEUNALIGN
+          if (pad_first[l])
+            pos += calc_pad(skinlist[l]);
+#endif
           mypop(n, skinlist[l]);
         } else if (last >= 0) {
-          g.skin_ed = (unsigned) l;
+          last = l;
+          i.last_pad = g.last_pad = pad_first[last - 1] ? 0 : calc_pad(skinlist[last - 1]);
+          g.skin_ed = (unsigned) last;
           g.len = pos - g.pos;
           ghost.emplace_back(g);
-          i.len = st_pos[l] - i.pos;
-          i.skin_ed = (unsigned) l;
+          i.len = st_pos[last] - i.pos;
+          i.skin_ed = (unsigned) last;
           skin.emplace_back(i);
           last = -1;
         }
       if (last >= 0) {
-        g.skin_ed = (unsigned) skinlist.size();
+        last = skinlist.size();
+        i.last_pad = g.last_pad = pad_first[last - 1] ? 0 : calc_pad(skinlist[last - 1]);
+        g.skin_ed = (unsigned) last;
         g.len = pos - g.pos;
         ghost.emplace_back(g);
         i.len = st_pos[skinlist.size()] - i.pos;
-        i.skin_ed = (unsigned) skinlist.size();
+        i.skin_ed = (unsigned) last;
         skin.emplace_back(i);
       }
     }
@@ -431,10 +475,12 @@ public:
 
     for (int i = 0; i < ghost.size(); ++i) {
       // receive to ghost[i]
-      MPI_Irecv(&(bStorage.dat.get()[ghost[i].pos * bStorage.step]), ghost[i].len * bStorage.step * sizeof(bElem),
+      MPI_Irecv(&(bStorage.dat.get()[(ghost[i].pos + ghost[i].first_pad) * bStorage.step]),
+                (ghost[i].len - ghost[i].first_pad - ghost[i].last_pad) * bStorage.step * sizeof(bElem),
                 MPI_CHAR, rank_map[ghost[i].neighbor.set], i, comm, &(requests[i << 1]));
       // send from skin[i]
-      MPI_Isend(&(bStorage.dat.get()[skin[i].pos * bStorage.step]), skin[i].len * bStorage.step * sizeof(bElem),
+      MPI_Isend(&(bStorage.dat.get()[(skin[i].pos + skin[i].first_pad) * bStorage.step]),
+                (skin[i].len - skin[i].first_pad - skin[i].last_pad) * bStorage.step * sizeof(bElem),
                 MPI_CHAR, rank_map[skin[i].neighbor.set], i, comm, &(requests[(i << 1) + 1]));
     }
 
@@ -486,6 +532,7 @@ public:
 
     // All each section is a pair of exchange with one neighbor
     std::vector<size_t> seclen;
+    std::vector<size_t> first_pad;
     ExchangeView::Dest send;
     ExchangeView::Dest recv;
 
@@ -500,8 +547,13 @@ public:
       // Receive buffer + buffer length
       std::vector<size_t> packing;
       size_t len = 0;
+      long first_pad_v = -1;
+      long last_pad = 0;
       for (auto g: ghost) {
         if (g.neighbor.set == n.set) {
+          if (first_pad_v < 0)
+            first_pad_v = g.first_pad * bStorage.step * sizeof(bElem);
+          last_pad = g.last_pad * bStorage.step * sizeof(bElem);
           packing.push_back(g.pos * bStorage.step * sizeof(bElem));
           size_t l = g.len * bStorage.step * sizeof(bElem);
           packing.push_back(l);
@@ -509,6 +561,9 @@ public:
         }
       }
       recv.push_back(std::make_pair(rank_map[n.set], memfd->packed_pointer(packing)));
+      len -= first_pad_v;
+      len -= last_pad;
+      first_pad.emplace_back(first_pad_v);
       seclen.push_back(len);
       packing.clear();
       // Send buffer
@@ -521,7 +576,7 @@ public:
       send.push_back(std::make_pair(rank_map[in.set], memfd->packed_pointer(packing)));
     }
 
-    return ExchangeView(comm, seclen, send, recv);
+    return ExchangeView(comm, seclen, first_pad, send, recv);
   }
 
   /**
