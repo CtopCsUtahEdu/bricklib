@@ -52,7 +52,6 @@ void regular(bElem *in_ptr, bElem *out_ptr) {
     throw std::runtime_error("result mismatch!");
 
   free(grid_ptr);
-  free(bStorage.dat);
   free(bInfo.adj);
 }
 
@@ -119,7 +118,6 @@ void decomp(bElem *in_ptr, bElem *out_ptr) {
   if (!compareBrick<3>({STRIDE, STRIDE, STRIDE}, out_ptr, grid_ptr, bOut))
     throw std::runtime_error("result mismatch!");
 
-  free(bStorage.dat);
   free(bInfo.adj);
 }
 

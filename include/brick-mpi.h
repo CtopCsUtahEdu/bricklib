@@ -642,7 +642,7 @@ public:
     for (int i = 0; i < ghost.size(); ++i) {
       size_t len = ghost[i].len * bStorage.step * sizeof(bElem);
       // receive from remote
-      MPI_Get(&(bStorage.dat[ghost[i].pos * bStorage.step]), len, MPI_CHAR, rank_map[ghost[i].neighbor.set],
+      MPI_Get(&(bStorage.dat.get()[ghost[i].pos * bStorage.step]), len, MPI_CHAR, rank_map[ghost[i].neighbor.set],
               skin[i].pos * bStorage.step * sizeof(bElem), len, MPI_CHAR, win);
     }
 

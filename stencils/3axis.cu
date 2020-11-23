@@ -176,7 +176,7 @@ void d3pt7cu() {
   std::cout << "Bri: " << cutime_func(brick_func) << std::endl;
   std::cout << "Trans: " << cutime_func(brick_func_trans) << std::endl;
 
-  cudaMemcpy(bStorage.dat, bStorage_dev.dat, bStorage.chunks * bStorage.step * sizeof(bElem), cudaMemcpyDeviceToHost);
+  cudaMemcpy(bStorage.dat.get(), bStorage_dev.dat.get(), bStorage.chunks * bStorage.step * sizeof(bElem), cudaMemcpyDeviceToHost);
   cudaDeviceSynchronize();
 
   if (!compareBrick<3>({N, N, N}, {PADDING, PADDING, PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
@@ -192,9 +192,7 @@ void d3pt7cu() {
   free(out_ptr);
   free(grid_ptr);
   free(bInfo.adj);
-  free(bStorage.dat);
   cudaFree(_bInfo_dev.adj);
-  cudaFree(bStorage_dev.dat);
   cudaFree(in_dev);
   cudaFree(out_dev);
 }
@@ -331,7 +329,7 @@ void d3condcu() {
   std::cout << "Bri: " << cutime_func(brick_func) << std::endl;
   std::cout << "Trans: " << cutime_func(brick_func_trans) << std::endl;
 
-  cudaMemcpy(bStorage.dat, bStorage_dev.dat, bStorage.chunks * bStorage.step * sizeof(bElem), cudaMemcpyDeviceToHost);
+  cudaMemcpy(bStorage.dat.get(), bStorage_dev.dat.get(), bStorage.chunks * bStorage.step * sizeof(bElem), cudaMemcpyDeviceToHost);
   cudaDeviceSynchronize();
 
   if (!compareBrick<3>({N, N, N}, {PADDING, PADDING, PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
@@ -347,9 +345,7 @@ void d3condcu() {
   free(out_ptr);
   free(grid_ptr);
   free(bInfo.adj);
-  free(bStorage.dat);
   cudaFree(_bInfo_dev.adj);
-  cudaFree(bStorage_dev.dat);
   cudaFree(in_dev);
   cudaFree(out_dev);
 }
