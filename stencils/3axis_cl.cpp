@@ -92,7 +92,7 @@ void d3pt7() {
 
   size_t bDat_size = bStorage.chunks * bStorage.step * sizeof(bElem);
   auto bDat_buf = cl::Buffer(*context, CL_MEM_READ_WRITE, bDat_size);
-  cl::enqueueWriteBuffer(bDat_buf, false, 0, bDat_size, (void *) bStorage.dat);
+  cl::enqueueWriteBuffer(bDat_buf, false, 0, bDat_size, (void *) bStorage.dat.get());
 
   auto arr_func = [&arr_in, &arr_out]() -> void {
     _TILEFOR arr_out[k][j][i] = coeff[5] * arr_in[k + 1][j][i] + coeff[6] * arr_in[k - 1][j][i] +
@@ -117,7 +117,7 @@ void d3pt7() {
                          st_event.getProfilingInfo<CL_PROFILING_COMMAND_START>()) / 1e9 / (ocl_iter + 2);
 
   std::cout << "OCL brick: " << btime << std::endl;
-  cl::enqueueReadBuffer(bDat_buf, true, 0, bDat_size, bStorage.dat);
+  cl::enqueueReadBuffer(bDat_buf, true, 0, bDat_size, bStorage.dat.get());
   command_queue.flush();
   command_queue.finish();
 
@@ -144,6 +144,5 @@ void d3pt7() {
   free(in_ptr);
   free(out_ptr);
   free(grid_ptr);
-  free(bStorage.dat);
   free(bInfo.adj);
 }

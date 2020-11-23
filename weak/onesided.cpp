@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
       MPI_Info info;
       MPI_Info_create(&info);
       MPI_Info_set(info, "no_locks", "true");
-      MPI_Win_create(bStorage.dat, bStorage.chunks * bStorage.step * sizeof(bElem), 1, info, cart, &win);
+      MPI_Win_create(bStorage.dat.get(), bStorage.chunks * bStorage.step * sizeof(bElem), 1, info, cart, &win);
     }
 
     Brick<Dim<BDIM>, Dim<VFOLD>> bIn(&bInfo, bStorage, 0);
