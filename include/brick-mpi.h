@@ -742,10 +742,11 @@ inline std::ostream &operator<<(std::ostream &os, const mpi_stats &stats) {
  *
  * @code{.cpp}
  * BrickDecomp<3, 8,8,8> bDecomp({128,128,128}, 8);
- * bDecomp.initialize(skin3d_good);
+ * bDecomp.initialize(surface3d_good);
  * @endcode
  */
-extern std::vector<BitSet> skin3d_good;
-extern std::vector<BitSet> skin3d_normal, skin3d_bad;
+extern std::vector<BitSet> surface3d_good;
+extern std::vector<BitSet> surface3d_normal, surface3d_bad;
+#define surface3d surface3d_good
 
 #endif //BRICK_BRICK_MPI_H

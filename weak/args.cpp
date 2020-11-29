@@ -17,14 +17,14 @@ namespace {
   const char *help =
       "Running MPI with %s\n\n"
       "Program options\n"
-      "  -h: show help (this message)\n"
+      "    -h: show help (this message)\n"
       "  MPI downsizing:\n"
-      "  -b: MPI downsize to 2-exponential "
+      "    -b: MPI downsize to 2-exponential\n"
       "  Domain size, pick either one, in array order contiguous first\n"
-      "  -d: comma separated Int[3], overall domain size\n"
-      "  -s: comma separated Int[3], per-process domain size\n"
+      "    -d: comma separated Int[3], overall domain size\n"
+      "    -s: comma separated Int[3], per-process domain size\n"
       "  Benchmark control:\n"
-      "  -I: number of iterations, default %d\n"
+      "    -I: number of iterations, default %d\n"
       "Example usage:\n"
       "  %s -d 2048,2048,2048\n";
 

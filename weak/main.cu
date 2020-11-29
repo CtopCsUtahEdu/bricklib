@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     populate(cart, bDecomp, 0, 1, coo);
 
     auto bSize = cal_size<BDIM>::value;
-    bDecomp.initialize(skin3d_good);
+    bDecomp.initialize(surface3d);
     BrickInfo<3> bInfo = bDecomp.getBrickInfo();
 #ifdef DECOMP_PAGEUNALIGN
     auto bStorage = bInfo.allocate(bSize);

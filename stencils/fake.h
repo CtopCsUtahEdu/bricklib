@@ -32,7 +32,9 @@
 #define MPI_C8 0.003
 #define MPI_C9 0.001
 
+#ifndef MPI_STENCIL
 #define MPI_7PT
+#endif
 
 #ifdef MPI_49PT
 #define ST_SCRTPT "../stencils/mpi49pt.py"

@@ -21,9 +21,13 @@ endif ()
 
 find_package(OpenMP REQUIRED)
 find_package(MPI)
-find_package(OpenCL 2.0)
 
-option(USE_MEMFD "Using memfd instead of shm_open, supported on Linux >= 3.17 with \"CONFIG_MEMFD_CREATE\"" OFF)
+option(USE_LAYOUT "Disables any memmap implementations" OFF)
+if (USE_LAYOUT)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDECOMP_PAGEUNALIGN")
+endif ()
+
+option(USE_MEMFD "Uses memfd instead of shm_open, supported on Linux >= 3.17 with \"CONFIG_MEMFD_CREATE\"" OFF)
 if (USE_MEMFD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_MEMFD")
 endif ()
@@ -33,7 +37,7 @@ if (CUDA_AWARE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDA_AWARE")
 endif ()
 
-option(USE_TYPES "Use MPI_TYPES" OFF)
+option(USE_TYPES "Use MPI_TYPES" ON)
 if (USE_TYPES)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_TYPES")
 endif ()
@@ -45,7 +49,13 @@ endif ()
 
 option(BRICK_BUILD_TEST "Include various tests as build target" ON)
 
-option(HAS_HMM "Use ATS/HMM for CUDA (not-used)" OFF)
+# option(HAS_HMM "Use ATS/HMM for CUDA (not-used)" OFF)
+
+set(MPI_STENCIL "7PT" CACHE STRING "Stencil used for MPI experiments")
+set_property(CACHE MPI_STENCIL PROPERTY STRINGS "7PT" "13PT" "125PT" "45PT")
+if (MPI_STENCIL)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMPI_STENCIL -DMPI_${MPI_STENCIL}")
+endif()
 
 # MacOS doesn't have librt
 # shm_open is recommended to link with -lrt (man page)
@@ -108,12 +118,8 @@ if (MPI_FOUND)
 endif()
 
 add_subdirectory(src)
-if (BRICK_BUILD_TEST)
-    add_subdirectory(single)
-    if (MPI_FOUND)
+if (BRICK_BUILD_TEST AND MPI_FOUND)
         add_subdirectory(weak)
-        add_subdirectory(strong)
-    endif()
 endif ()
 
 # Install headers

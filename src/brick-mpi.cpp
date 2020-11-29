@@ -22,7 +22,7 @@ void allneighbors(BitSet cur, long idx, long dim, std::vector<BitSet> &neighbors
   allneighbors(cur, idx + 1, dim, neighbors);
 }
 
-std::vector<BitSet> skin3d_good = {
+std::vector<BitSet> surface3d_good = {
     {1},
     {1,  -3},
     {1,  2,  -3},
@@ -51,7 +51,7 @@ std::vector<BitSet> skin3d_good = {
     {3}
 };
 
-std::vector<BitSet> skin3d_normal = {
+std::vector<BitSet> surface3d_normal = {
     {-1, -2, -3},
     {-2, -3},
     {1,  -2, -3},
@@ -81,7 +81,7 @@ std::vector<BitSet> skin3d_normal = {
     {1,  2,  3}
 };
 
-std::vector<BitSet> skin3d_bad = {
+std::vector<BitSet> surface3d_bad = {
     {-1, -2, -3},
     {},
     {-2, -3},
