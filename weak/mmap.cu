@@ -280,10 +280,12 @@ int main(int argc, char **argv) {
       mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
       mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
       mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+#ifndef DECOMP_PAGEUNALIGN
       size_t opt_size = 0;
       for (auto s: ev.seclen)
         opt_size += s * 2;
       mpi_stats opt_size_s = mpi_statistics((double) opt_size * 1.0e-6, MPI_COMM_WORLD);
+#endif
 
       mpi_stats move_s = mpi_statistics(movetime / cnt, MPI_COMM_WORLD);
 
@@ -296,7 +298,9 @@ int main(int argc, char **argv) {
         std::cout << "call " << call_s << std::endl;
         std::cout << "wait " << wait_s << std::endl;
         std::cout << "  | MPI size (MB): " << size_s << std::endl;
+#ifndef DECOMP_PAGEUNALIGN
         std::cout << "  | Opt MPI size (MB): " << opt_size_s << std::endl;
+#endif
         std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
 
         double perf = (double) tot_elems * 1.0e-9;

@@ -360,7 +360,11 @@ public:
     };
 
     auto calc_pad = [&factor, this](const BitSet &region) -> long {
+#ifdef DECOMP_PAGEUNALIGN
+      return 0;
+#else
       return factor - (get_region_size(region) + factor - 1) % factor - 1;
+#endif
     };
 
     std::vector<unsigned> st_pos;  // The starting position of a segment
@@ -385,10 +389,8 @@ public:
     // Allocating skinlist
     for (long i = 0; i < skinlist.size(); ++i) {
       long ppos = pos;
-#ifndef DECOMP_PAGEUNALIGN
       if (pad_first[i])
         pos += calc_pad(skinlist[i]);
-#endif
       if (skinlist[i].set != 0)
         mypop(0, skinlist[i]);
       st_pos.emplace_back(pos);
@@ -422,10 +424,8 @@ public:
             g.pos = pos;
             i.pos = st_pos[last];
           }
-#ifndef DECOMP_PAGEUNALIGN
           if (pad_first[l])
             pos += calc_pad(skinlist[l]);
-#endif
           mypop(n, skinlist[l]);
         } else if (last >= 0) {
           last = l;
@@ -475,6 +475,7 @@ public:
 
     for (int i = 0; i < ghost.size(); ++i) {
       // receive to ghost[i]
+      std::cout << ghost[i].first_pad << ghost[i].last_pad << std::endl;
       MPI_Irecv(&(bStorage.dat.get()[(ghost[i].pos + ghost[i].first_pad) * bStorage.step]),
                 (ghost[i].len - ghost[i].first_pad - ghost[i].last_pad) * bStorage.step * sizeof(bElem),
                 MPI_CHAR, rank_map[ghost[i].neighbor.set], i, comm, &(requests[i << 1]));
