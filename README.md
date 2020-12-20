@@ -2,9 +2,9 @@
 
 ***Artifact Evaluation Package***
 
-For the public version of our source code, which also includes more experiments, see [Bricklib on Github](https://github.com/CtopCsUtahEdu/bricklib).
+For the public version of our source code, which includes more experiments, see [Bricklib on Github](https://github.com/CtopCsUtahEdu/bricklib).
 
-For our code documentation generated from doxygen, see [Bricklib documentation](https://bricks.run/).
+For our code documentation generated from Doxygen, see [Bricklib documentation](https://bricks.run/).
 
 ## Getting started
 
@@ -39,15 +39,15 @@ make -j`nproc`
 
 #### Common build errors
 
-The following are some of the common errors resulting from different software stacks present. This list is 
+The following are some of the common errors resulting from different software stacks present. This list is
 non-exhaustive.
 
-When using a non-default compiler, please specify the actual compiler to use on during configuration. Such as when trying 
+When using a non-default compiler, please specify the actual compiler to use on during configuration. Such as when trying
 to use *g++-8 and gcc-8* while *cc -v* is gcc 4.8, add the following command-line option during configure:
 
 `-DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8`
 
-Some MPI implementations may embed header location in the MPI compiler wrapper causing CMake unable to find them. One 
+Some MPI implementations may embed header location in the MPI compiler wrapper causing CMake unable to find them. One
 possible error resulted from this may be `mpi.h not found`. please find out where MPI headers are located and modify
 *CMakeLists.txt* in the root folder of the source code.
 
@@ -58,16 +58,17 @@ possible error resulted from this may be `mpi.h not found`. please find out wher
  find_package(OpenCL 2.0)
 ~~~
 
-Our CMake script tries to optimize for the platform that builds the source code, this may result in non-optimal 
-choices and conflicts when picking the vector folding parameters for the CPU platform. Such as, building the code on a 
+Our CMake script tries to optimize for the platform that builds the source code. In turn, this may result in non-optimal
+choices and conflicts when picking the vector folding parameters for the CPU platform. Such as compiling the code on a
 Xeon platform without AVX512 and try to run the code on Xeon Phi. Worse still, if the compiler uses wrapper script and
-hides the vectorization choice from CMake, which will result in the wrong code. In such cases, you can either modify the 
-*CMakeLists.txt* to not use `--march=knl` rather than `--march=native`. Or modify *include/cpuvfold.h* and force any of 
-the vectorization choices by deleting others.
+hides the vectorization choice from CMake, which will result in the wrong code. In such cases, you can modify the
+*CMakeLists.txt* to not use `--march=knl` rather than `--march=native`. However, if such parameters are built-in to the
+compiler wrapper on your system, you should delete `--march` definitions and modify *include/cpuvfold.h* and force any
+of the vectorization choices by deleting others.
 
 #### Setting up on Mac OS
 
-There are a few problems when on MacOS.
+There are a few problems when on macOS.
 
 * openmp support
 * undefined aligned_alloc()
@@ -75,7 +76,7 @@ There are a few problems when on MacOS.
 
 ##### OpenMP support & preprocessor selection
 
-Install gcc from brew which comes with OpenMP support.
+Install gcc from brew, which comes with OpenMP support.
 
 `brew install gcc@9`
 
@@ -95,8 +96,8 @@ Use c++17 instead of c++11 by modifying *CMakeLists.txt*.
 
 ### Quick runs
 
-In the build directory *<srcdir>/build*, after `make`, *<srcdir>/build/weak* will contains executables used in our 
-experiments. All executables share the same run time options, use `-h` to see the help messages. 
+In the build directory *<srcdir>/build*, after `make`, *<srcdir>/build/weak* will contains executables used in our
+experiments. All executables share the same run time options, use `-h` to see the help messages.
 
 ~~~
 $> cd <srcdir>/build/weak
@@ -141,12 +142,12 @@ Total of 42 parts
 ./cpu -d 512,512,512 -I 25  795.80s user 4.84s system 1505% cpu 53.195 total
 ~~~
 
-The two sets of results represent running the code twice, once using arrays and MPI_Type denoted by *Arr*, the second 
-time using bricks and our communication method denoted by *Bri*. The results are compared against each other after these 
+The two sets of results represent running the code twice, once using arrays and MPI_Type denoted by *Arr*, the second
+time using bricks and our communication method denoted by *Bri*. The results are compared against each other after these
 two runs.
 
 Individual timing and throughput for different steps of the computation are reported for each implementation. Statistics
-are shown in the format of *[min, avg, max] (σ: Standard deviation)*. These statistics are computed on the reported 
+are shown in the format of *[min, avg, max] (σ: Standard deviation)*. These statistics are computed on the reported
 per-node averages over the time steps, which is why in the previous example, there is no deviation due to using only one
 node. The meaning of each of the individual timings:
 
@@ -156,7 +157,7 @@ node. The meaning of each of the individual timings:
 * *wait* Time spent in MPI_Waitall
 * *perf* overall throughput based on the average of per iteration time
 
-Running with MPI is dependent on the specific queuing system. The following example shows running on a Ryzen 3700X 
+Running with MPI is dependent on the specific queuing system. The following example shows running on a Ryzen 3700X
 desktop using 8 mpi processes:
 
 ~~~
@@ -188,13 +189,13 @@ mpiexec -n 8 ./cpu -d 512,512,512 -I 25  838.41s user 12.55s system 1467% cpu 57
 
 ## Experiments in paper
 
-Our experiments based on different code paths in the source that may require rebuilding using different configuration 
-options. First, we describe the options available during configuration. Second, we provide the build configurations we
+Our experiments are based on different code paths that may require rebuilding using different configuration options. 
+First, we describe the options available during configuration. Second, we provide the build configurations we
 used for the experiments described in our paper.
 
 ### Configuration options
 
-The following options are available to be used during the configuration phase. You may see them using *ccmake* or 
+The following options are available to be used during the configuration phase. You may see them using *ccmake* or
 *cmake-gui* command. They can be configured on the command-line using `-D<OPTION>=<VALUE>` during configuration.
 
 * *USE_LAYOUT*
@@ -305,9 +306,9 @@ The following options are available to be used during the configuration phase. Y
 These results are not the main contribution of the paper but rather used to illustrate a point. They may not be
 streamlined in this artifact package.
 
-*Proposed* in Figure 1 uses the same result as *MemMap* in experiment K1. 
+*Proposed* in Figure 1 uses the same result as *MemMap* in experiment K1.
 
-*Layout* in Figure 4 uses the same result as *Layout* in experiment K1. *Basic* in Figure 4 uses the following 
+*Layout* in Figure 4 uses the same result as *Layout* in experiment K1. *Basic* in Figure 4 uses the following
 configurations,
 
 `-DUSE_LAYOUT=ON`
@@ -322,8 +323,8 @@ with the following modification of *include/brick-mpi.h*
 ~~~
 
 Figure 16 is generated by modifying *include/brick-mpi.h* by making the library think that the page size is larger than
-what is reported. For example, Theta is a system with 4KiB pages, the following is used for the 16KiB experiment. 
-Configuration for all experiments in this figure is the same as *MemMap* in K1. *MPI_Types* uses the *MPI_Types* result 
+what is reported. For example, Theta is a system with 4KiB pages, the following is used for the 16KiB experiment.
+Configuration for all experiments in this figure is the same as *MemMap* in K1. *MPI_Types* uses the *MPI_Types* result
 from K1.
 
 ~~~
@@ -384,18 +385,18 @@ Currently Loaded Modules:
 
 YASK package is obtained from [Github](https://github.com/intel/yask) which is used in some of our comparisons.
 
-The basic compilation usage of YASK for compiling for Intel KNL platform on 7pt stencil that we used as our comparison 
-is shown below. 
+The basic compilation usage of YASK for compiling for Intel KNL platform on 7pt stencil that we used as our comparison
+is shown below.
 
-`make arch=knl mpi=1 real_bytes=8 stencil=3axis radius=1`
+`make stencil=3axis radius=8 real_bytes=8 numa=0 mpi=1 arch=knl`
 
 125pt stencil:
 
-`make arch=knl mpi=1 real_bytes=8 stencil=cube radius=2`
+`make stencil=cube radius=2 real_bytes=8 numa=0 mpi=1 arch=knl`
 
 Stencils can be executed using:
 
 `./bin/yask.sh -stencil 3axis -arch=knl -g 512`
 
-The actual run command of the stencil code depends on the job system provided. We pick the best result out of the three 
+The actual run command of the stencil code depends on the job system provided. We pick the best result out of the three
 trials reported when running the stencil.
