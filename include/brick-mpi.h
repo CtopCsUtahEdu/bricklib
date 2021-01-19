@@ -475,7 +475,6 @@ public:
 
     for (int i = 0; i < ghost.size(); ++i) {
       // receive to ghost[i]
-      std::cout << ghost[i].first_pad << ghost[i].last_pad << std::endl;
       MPI_Irecv(&(bStorage.dat.get()[(ghost[i].pos + ghost[i].first_pad) * bStorage.step]),
                 (ghost[i].len - ghost[i].first_pad - ghost[i].last_pad) * bStorage.step * sizeof(bElem),
                 MPI_CHAR, rank_map[ghost[i].neighbor.set], i, comm, &(requests[i << 1]));
