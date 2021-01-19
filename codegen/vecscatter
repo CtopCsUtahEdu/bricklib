@@ -32,6 +32,7 @@ if __name__ == "__main__":
                         help='limit for input vectors and buffers', type=float)
     parser.add_argument('--unroll', '-u', help='fully unroll during scatter', action='store_true')
     parser.add_argument('--dsplit', '-d', help='perform dimensional split on the input stencils', action='store_true')
+    parser.add_argument('--cpp', '-c', help='set the C preprocessor used', default=CPP, type=str)
 
     idx = 0
     while idx < len(sys.argv) and sys.argv[idx] != '--':
@@ -41,6 +42,8 @@ if __name__ == "__main__":
     arg = parser.parse_args(opts)
     src = arg.input
     dst = arg.output
+
+    CPP = arg.cpp
 
     # clean compiler specific options
     cppargv = [arg for arg in sys.argv[(idx + 1):] if arg[0] == '-' and (arg[1].isupper() or arg[1] in 'm')]
