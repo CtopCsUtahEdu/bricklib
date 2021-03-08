@@ -19,6 +19,12 @@
 #define VSVEC "AVX2"
 #define VFOLD 2,2
 
+#elif defined(__ARM_NEON)
+
+#include<arm_neon.h>
+#define VSVEC "ASIMD"
+#define VFOLD 2
+
 #else
 
 #define VSVEC "Scalar"
