@@ -78,7 +78,7 @@ if (NOT BRICK_PROJECT_PATH)
 endif ()
 
 # Avoid using O3
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG -g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
 check_cxx_compiler_flag(-march=native HAS_MARCH)
 if (HAS_MARCH)
