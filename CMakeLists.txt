@@ -28,7 +28,7 @@ if (USE_MEMFD)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_MEMFD")
 endif ()
 
-option(CUDA_AWARE "Use CUDA_AWARE communication" ON)
+option(CUDA_AWARE "Use CUDA_AWARE communication" OFF)
 if (CUDA_AWARE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCUDA_AWARE")
 endif ()
@@ -77,7 +77,7 @@ if (NOT BRICK_PROJECT_PATH)
     include(cmake/VecScatter.cmake)
 endif ()
 
-# Avoid using O2
+# Avoid using O3
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
 check_cxx_compiler_flag(-march=native HAS_MARCH)

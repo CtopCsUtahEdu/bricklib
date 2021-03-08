@@ -9,10 +9,12 @@
 /**
  * @brief Basic datatype for all brick elements
  */
+#ifndef bElem
 #define bElem double
+#endif
 
-#define VS_STRING(x) #x
-#define VS_TOSTR(x) VS_STRING(x)
+#define VS_STRING(...) #__VA_ARGS__
+#define VS_TOSTR(...) VS_STRING(__VA_ARGS__)
 
 #define _SELECTMACRO(_v0, _v1, _v2, _v3, _v4, _v6, NAME, ...) NAME
 
@@ -86,19 +88,5 @@
  * @endcode
  */
 #define _brick6(file, vec, vsdim, vsfold, brickIdx, stri) do { _Pragma(VS_TOSTR(vecscatter Scatter Brick(__FILE__, __LINE__, file, VS_TOSTR(bElem), vec, bidx=VS_TOSTR(brickIdx), dim=vsdim, fold=vsfold, stride=stri))) } while (false)
-
-/**
- * @defgroup CodegenTypes Types used by codegen
- *
- * TODO can be easily deprecated to the codegen + doxygen messes this up
- * @{
- */
-typedef bElem vfloat512[512] __attribute__((aligned(64)));
-typedef bElem vfloat256[256] __attribute__((aligned(64)));
-typedef bElem vfloat128[128] __attribute__((aligned(64)));
-typedef bElem vfloat64[64] __attribute__((aligned(64)));
-typedef bElem vfloat8[8] __attribute__((aligned(32)));
-typedef bElem vfloat4[4] __attribute__((aligned(32)));
-/**@}*/
 
 #endif //BRICK_VECSCATTER_H
