@@ -4,7 +4,6 @@
 
 #include "stencils.h"
 #include <iostream>
-#include "immintrin.h"
 #include "bricksetup.h"
 #include "multiarray.h"
 #include "brickcompare.h"
