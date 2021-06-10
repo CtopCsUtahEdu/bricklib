@@ -55,3 +55,12 @@ if (CMAKE_CUDA_COMPILER)
             )
 endif ()
 
+if (USE_HIP)
+    set(HIP_SRCS hip.cpp)
+    set_source_files_properties(${HIP_SRCS} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+    hip_add_executable(single-hip ${HIP_SRCS})
+    target_link_libraries(single-hip brickhelper)
+    set_target_properties(single-hip
+            PROPERTIES OUTPUT_NAME hip)
+endif ()
+
