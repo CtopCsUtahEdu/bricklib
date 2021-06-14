@@ -66,8 +66,8 @@ inline BrickStorage movBrickStorage(BrickStorage &bStorage, cudaMemcpyKind kind)
 
   bool isToDevice = (kind == cudaMemcpyHostToDevice);
   // Make a copy
-  BrickStorage hostbstorage = bStorage;
-  unsigned size = hostbstorage.step * hostbstorage.chunks * sizeof(bElem);
+  BrickStorage ret = bStorage;
+  unsigned size = bStorage.step * bStorage.chunks * sizeof(bElem);
   bElem *datptr;
   if (isToDevice) {
     cudaCheck(cudaMalloc(&datptr, size));
@@ -76,11 +76,11 @@ inline BrickStorage movBrickStorage(BrickStorage &bStorage, cudaMemcpyKind kind)
   }
   cudaCheck(cudaMemcpy(datptr, bStorage.dat.get(), size, kind));
   if (isToDevice) {
-    hostbstorage.dat = std::shared_ptr<bElem>(datptr, [](bElem *p) { cudaFree(p); });
+    ret.dat = std::shared_ptr<bElem>(datptr, [](bElem *p) { cudaFree(p); });
   } else {
-    hostbstorage.dat = std::shared_ptr<bElem>(datptr, [](bElem *p) { free(p); });
+    ret.dat = std::shared_ptr<bElem>(datptr, [](bElem *p) { free(p); });
   }
-  return hostbstorage;
+  return ret;
 }
 
 #include "dev_shl.h"
