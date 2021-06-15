@@ -6,9 +6,9 @@
 #ifndef BRICK_BRICK_CUDA_H
 #define BRICK_BRICK_CUDA_H
 
+#include <cassert>
 #include <brick.h>
 #include <cuda_runtime.h>
-#include <assert.h>
 
 /**
  * @brief Check the return of CUDA calls, do nothing during release build
@@ -21,6 +21,7 @@
 
 #define cudaCheck(x) _cudaCheck(x, #x ,__FILE__, __LINE__)
 #endif
+
 
 /// Internal for #cudaCheck(x)
 template<typename T>
