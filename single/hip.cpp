@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include "stencils/stencils_hip.hip.hpp"
 #include <random>
 #include "brick.h"
 
@@ -17,6 +18,6 @@ int main() {
   for (int i = 0; i < 129; ++i)
     coeff[i] = u(mt);
 
-  std::cout << "Hello world" << std::endl;
+  d3pt7hip();
   return 0;
 }

@@ -5,6 +5,9 @@
 #ifndef BRICK_STENCILS_HIP_H
 #define BRICK_STENCILS_HIP_H
 
+#include <include/brick-hip.hip.hpp>
+#include "stencils.h"
+
 #define HIP_ITER 100
 
 template<typename T>
@@ -27,6 +30,6 @@ double hiptime_func(T func) {
     return elapsed / HIP_ITER / ms_per_s;
 }
 
-void d3pt7cu();
+void d3pt7hip();
 
 #endif // fully defined
