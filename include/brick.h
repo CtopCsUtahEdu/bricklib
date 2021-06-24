@@ -14,6 +14,10 @@
 /// BrickStorage allocation alignment
 #define ALIGN 2048
 
+#if defined(__HIP__)
+#include <hip/hip_runtime.h>
+#endif
+
 /// Overloaded attributes for potentially GPU-usable functions (in place of __host__ __device__ etc.)
 #if defined(__CUDACC__) || defined(__HIP__)
 #define FORCUDA __host__ __device__

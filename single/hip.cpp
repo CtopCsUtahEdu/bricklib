@@ -3,9 +3,10 @@
 //
 
 #include <iostream>
-#include "stencils/stencils_hip.hip.hpp"
+#include "stencils/stencils_hip.hip.h"
 #include <random>
 #include "brick.h"
+#include "stencils/stencils.h"
 
 bElem *coeff;
 

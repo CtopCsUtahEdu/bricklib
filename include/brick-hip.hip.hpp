@@ -9,6 +9,7 @@
 #define hipCheck(x) x
 #else
 
+#include <cstdio>
 #define hipCheck(x) _hipCheck(x, #x, __FILE__, __LINE__)
 #endif
 
@@ -36,7 +37,7 @@ BrickInfo<dims> movBrickInfo(BrickInfo<dims> &bInfo, hipMemcpyKind kind) {
     if (kind == hipMemcpyHostToDevice) {
         hipCheck(hipMalloc(&ret.adj, size));
     } else {
-        ret.adj = (unsigned (*)[static_power<3, dims>::value]) malloc(size);
+        ret.adj = (unsigned (*)[(static_power<3, dims>::value)]) malloc(size);
     }
     hipCheck(hipMemcpy(ret.adj, bInfo.adj, size, kind));
     return ret;

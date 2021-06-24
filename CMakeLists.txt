@@ -27,8 +27,8 @@ if (USE_HIP)
         set(HIP_PATH /opt/rocm/hip)
     endif()
     set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
-    list(APPEND CMAKE_PREFIX_PATH "${HIP_PATH}/lib/cmake" "${HIP_PATH}/../lib/cmake")
-    find_package(HIP)
+    list(APPEND CMAKE_PREFIX_PATH "${HIP_PATH}" "${HIP_PATH}/..")
+    find_package(HIP MODULE)
     if (NOT HIP_FOUND)
         message(FATAL_ERROR "HIP not found with USE_HIP specified")
     endif()
@@ -111,6 +111,7 @@ endif ()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${CMAKE_CXX_FLAGS}\"")
+set(CMAKE_HIP_FLAGS "${OpenMP_CXX_FLAGS}")
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include

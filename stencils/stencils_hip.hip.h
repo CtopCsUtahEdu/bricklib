@@ -5,7 +5,7 @@
 #ifndef BRICK_STENCILS_HIP_H
 #define BRICK_STENCILS_HIP_H
 
-#include <include/brick-hip.hip.hpp>
+#include <brick-hip.hip.hpp>
 #include "stencils.h"
 
 #define HIP_ITER 100
