@@ -45,7 +45,7 @@ BrickInfo<dims> movBrickInfo(BrickInfo<dims> &bInfo, cudaMemcpyKind kind) {
 
   // Make a copy
   BrickInfo<dims> ret = bInfo;
-  unsigned size = bInfo.nbricks * static_power<3, dims>::value * sizeof(unsigned);
+  size_t size = bInfo.nbricks * static_power<3, dims>::value * sizeof(unsigned);
 
   if (kind == cudaMemcpyHostToDevice) {
     cudaCheck(cudaMalloc(&ret.adj, size));
@@ -68,7 +68,7 @@ inline BrickStorage movBrickStorage(BrickStorage &bStorage, cudaMemcpyKind kind)
   bool isToDevice = (kind == cudaMemcpyHostToDevice);
   // Make a copy
   BrickStorage ret = bStorage;
-  unsigned size = bStorage.step * bStorage.chunks * sizeof(bElem);
+  size_t size = bStorage.step * bStorage.chunks * sizeof(bElem);
   bElem *datptr;
   if (isToDevice) {
     cudaCheck(cudaMalloc(&datptr, size));
