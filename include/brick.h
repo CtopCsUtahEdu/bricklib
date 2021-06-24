@@ -56,12 +56,12 @@ struct BrickStorage {
    */
   long chunks;
   /// Size of a chunk in number of elements
-  long step;
+  size_t step;
   /// MMAP data structure when using mmap as allocator
   void *mmap_info = nullptr;
 
   /// Allocation using *alloc
-  static BrickStorage allocate(long chunks, long step) {
+  static BrickStorage allocate(long chunks, size_t step) {
     BrickStorage b;
     b.chunks = chunks;
     b.step = step;
@@ -356,7 +356,7 @@ struct Brick<Dim<BDims...>, Dim<Folds...> > {
   static constexpr unsigned BRICKSIZE = cal_size<BDims...>::value;  ///< Brick size shorthand
 
   myBrickInfo *bInfo;        ///< Pointer to (possibly shared) metadata
-  unsigned step;             ///< Spacing between bricks in unit of bElem (BrickStorage)
+  size_t step;             ///< Spacing between bricks in unit of bElem (BrickStorage)
   bElem *dat;                ///< Offsetted memory (BrickStorage)
   BrickStorage bStorage;
 
