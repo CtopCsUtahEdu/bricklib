@@ -39,7 +39,7 @@
     #define gpuCheck(x) x
     #else
 
-    #include <cstudio>
+    #include <cstdio>
     #define gpuCheck(x) _gpuCheck(x, #x, __FILE__, __LINE__)
 #endif
 
