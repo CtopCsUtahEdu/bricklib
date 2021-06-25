@@ -56,10 +56,10 @@ if (CMAKE_CUDA_COMPILER)
 endif ()
 
 if (USE_HIP)
-    set(HIP_SRCS hip.cpp)
     VSTARGET(H3AXIS ../stencils/3axis.hip.cpp ../stencils/3axis-out.hip.cpp)
+    set(HIP_SRCS hip.cpp ${VSTARGET_H3AXIS_OUTPUT})
     set_source_files_properties(${HIP_SRCS} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
-    hip_add_executable(single-hip ${HIP_SRCS} ${VSTARGET_H3AXIS_OUTPUT})
+    hip_add_executable(single-hip ${HIP_SRCS} CLANG_OPTIONS ${CMAKE_CXX_FLAGS})
     target_link_libraries(single-hip brickhelper hip::host)
     set_target_properties(single-hip
             PROPERTIES OUTPUT_NAME hip)
