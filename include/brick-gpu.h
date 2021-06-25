@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief For using bricks with GPUs.
+ * @brief This file should not be directly included. It defines instructions for using bricklib with a GPU, but either brick-hip.h or brick-cuda.h should be included for correct runtime support
  */
 
 #ifndef BRICK_GPU_FUNCS_H
@@ -8,33 +8,6 @@
 
 #include <cassert>
 #include <brick.h>
-
-#if defined(__CUDACC__)
-#warning Using CUDA
-#define gpuMalloc(p, s) cudaMalloc(p, s)
-#define gpuMemcpy(d, p, s, k) cudaMemcpy(d, p, s, k)
-#define gpuMemcpyKind cudaMemcpyKind
-#define gpuMemcpyHostToDevice cudaMemcpyHostToDevice
-#define gpuMemcpyDeviceToHost cudaMemcpyDeviceToHost
-#define gpuFree(p) cudaFree(p)
-#define gpuGetErrorString(e) cudaGetErrorString(e)
-#define gpuSuccess cudaSuccess
-
-#elif defined(__HIP__)
-#warning Using HIP
-#define gpuMalloc(p, s) hipMalloc(p, s)
-#define gpuMemcpy(d, p, s, k) hipMemcpy(d, p, s, k)
-#define gpuMemcpyKind hipMemcpyKind
-#define gpuMemcpyHostToDevice hipMemcpyHostToDevice
-#define gpuMemcpyDeviceToHost hipMemcpyDeviceToHost
-#define gpuFree(p) hipFree(p)
-#define gpuGetErrorString(e) hipGetErrorString(e)
-#define gpuSuccess hipSuccess
-
-#else
-#error No architecture defined
-
-#endif // __CUDACC__ and __HIP__ 
 
 #ifndef NDEBUG
     #define gpuCheck(x) x
