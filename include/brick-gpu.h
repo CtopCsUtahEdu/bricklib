@@ -10,9 +10,7 @@
 #include <brick.h>
 
 #if defined(__CUDACC__)
-
-#include <cuda_runtime.h>
-
+#warning Using CUDA
 #define gpuMalloc(p, s) cudaMalloc(p, s)
 #define gpuMemcpy(d, p, s, k) cudaMemcpy(d, p, s, k)
 #define gpuMemcpyKind cudaMemcpyKind
@@ -20,11 +18,10 @@
 #define gpuMemcpyDeviceToHost cudaMemcpyDeviceToHost
 #define gpuFree(p) cudaFree(p)
 #define gpuGetErrorString(e) cudaGetErrorString(e)
+#define gpuSuccess cudaSuccess
 
 #elif defined(__HIP__)
-
-#include <hip/hip_runtime.h>
-
+#warning Using HIP
 #define gpuMalloc(p, s) hipMalloc(p, s)
 #define gpuMemcpy(d, p, s, k) hipMemcpy(d, p, s, k)
 #define gpuMemcpyKind hipMemcpyKind
@@ -32,6 +29,10 @@
 #define gpuMemcpyDeviceToHost hipMemcpyDeviceToHost
 #define gpuFree(p) hipFree(p)
 #define gpuGetErrorString(e) hipGetErrorString(e)
+#define gpuSuccess hipSuccess
+
+#else
+#error No architecture defined
 
 #endif // __CUDACC__ and __HIP__ 
 
@@ -39,14 +40,14 @@
     #define gpuCheck(x) x
     #else
 
-    #include <cstudio>
+    #include <cstdio>
     #define gpuCheck(x) _gpuCheck(x, #x, __FILE__, __LINE__)
 #endif
 
 template<typename T>
 void _gpuCheck(T e, const char *func, const char *call, const int line) {
-    if (e != hipSuccess) {
-        printf("\"%s\" at %d in %s\n\treturned %d\n-> %s\n", func, line, call, (int) e, hipGetErrorString(e));
+    if (e != gpuSuccess) {
+        printf("\"%s\" at %d in %s\n\treturned %d\n-> %s\n", func, line, call, (int) e, gpuGetErrorString(e));
         exit(EXIT_FAILURE);
     }
 }
