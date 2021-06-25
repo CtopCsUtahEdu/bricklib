@@ -3,7 +3,7 @@
 //
 
 #include <iostream>
-#include "stencils/stencils_hip.hip.h"
+#include "stencils/stencils.hip.h"
 #include <random>
 #include "brick.h"
 #include "stencils/stencils.h"

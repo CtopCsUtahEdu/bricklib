@@ -2,7 +2,7 @@
 // Created by Samantha Hirsch on 6/22/21.
 //
 
-#include "stencils_hip.hip.h"
+#include "stencils.hip.h"
 #include <iostream>
 #include <ctime>
 #include "bricksetup.h"
@@ -170,14 +170,11 @@ void d3pt7hip() {
     };
 
     std::cout << "d3pt7" << std::endl;
-    long s = clock();
-    arr_func();
-    s = clock() - s;
-    std::cout << "CPU Arr: " << ((float) s / CLOCKS_PER_SEC) << std::endl;
+    std::cout << "CPU Arr: " << time_func(arr_func) << std::endl;
     std::cout << "Arr: " << hiptime_func(cuarr_func) << std::endl;
     std::cout << "Arr warp: " << hiptime_func(cuarr_warp) << std::endl;
     std::cout << "Arr scatter: " << hiptime_func(cuarr_scatter) << std::endl;
-    std::cout << "Bricks: " << hiptime_func(brick_func) << std::endl;
+    std::cout << "Bri: " << hiptime_func(brick_func) << std::endl;
     std::cout << "Trans: " << hiptime_func(brick_func_trans) << std::endl;
     hipDeviceSynchronize();
 
