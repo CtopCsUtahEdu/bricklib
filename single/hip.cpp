@@ -20,5 +20,6 @@ int main() {
     coeff[i] = u(mt);
 
   d3pt7hip();
+  d3condhip();
   return 0;
 }

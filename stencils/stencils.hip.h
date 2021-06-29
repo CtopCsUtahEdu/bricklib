@@ -31,5 +31,6 @@ double hiptime_func(T func) {
 }
 
 void d3pt7hip();
+void d3condhip();
 
 #endif // BRICK_STENCILS_HIP_H
