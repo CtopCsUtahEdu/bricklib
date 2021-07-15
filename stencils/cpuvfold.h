@@ -5,7 +5,7 @@
 #ifndef BRICK_CPUVFOLD_H
 #define BRICK_CPUVFOLD_H
 
-#ifdef __AVX512__
+#if defined(__AVX512F__) || defined(__AVX512__)
 
 // Setting for X86 with at least AVX512 support
 #include <immintrin.h>

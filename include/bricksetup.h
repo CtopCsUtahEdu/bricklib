@@ -32,9 +32,9 @@ inline void
 init_fill(const std::vector<long> &stride, unsigned *adjlist, unsigned *grid_ptr, unsigned *low, unsigned *high,
           RunningTag t) {
   unsigned str = static_power<3, d - 1>::value;
-  init_fill<dims, d - 1>(stride, adjlist, grid_ptr - stride[dims - d], low, high, TagSelect<d - 1>::value);
+  init_fill<dims, d - 1>(stride, adjlist, grid_ptr - stride[d - 1], low, high, TagSelect<d - 1>::value);
   init_fill<dims, d - 1>(stride, adjlist + str, grid_ptr, low, high, TagSelect<d - 1>::value);
-  init_fill<dims, d - 1>(stride, adjlist + str * 2, grid_ptr + stride[dims - d], low, high, TagSelect<d - 1>::value);
+  init_fill<dims, d - 1>(stride, adjlist + str * 2, grid_ptr + stride[d - 1], low, high, TagSelect<d - 1>::value);
 }
 
 template<unsigned dims, unsigned d>
@@ -73,22 +73,18 @@ init_iter(const std::vector<long> &dimlist, const std::vector<long> &stride, Bri
 template<unsigned dims>
 BrickInfo<dims> init_grid(unsigned *&grid_ptr, const std::vector<long> &dimlist) {
   long size = 1;
-  for (const auto a: dimlist)
+  std::vector<long> stride;
+  for (const auto a: dimlist) {
+    stride.push_back(size);
     size *= a;
+  }
   grid_ptr = (unsigned *) malloc(size * sizeof(unsigned));
   for (unsigned pos = 0; pos < size; ++pos)
     grid_ptr[pos] = pos;
 
   BrickInfo<dims> bInfo(size);
 
-  long tsize = size;
-  std::vector<long> stride;
-  for (const auto a: dimlist) {
-    size = size / a;
-    stride.push_back(size);
-  }
-
-  init_iter<dims, dims>(dimlist, stride, bInfo, grid_ptr, grid_ptr, grid_ptr + tsize, RunningTag());
+  init_iter<dims, dims>(dimlist, stride, bInfo, grid_ptr, grid_ptr, grid_ptr + size, RunningTag());
 
   return bInfo;
 }
