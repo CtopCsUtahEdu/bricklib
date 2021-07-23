@@ -143,7 +143,6 @@ void d3pt7dpc() {
     auto brick_func = [&grid_dev, &bInfo_dev, &bStorage, &coeff_dev]() -> sycl::event {
         // using a buffer and accessor the data is returned to the host at the end of execution
         auto dat_buffer = sycl::buffer<bElem>(bStorage.dat.get(), sycl::range(bStorage.chunks * bStorage.step));
-        dat_buffer.set_write_back(true);
         dat_buffer.set_final_data(bStorage.dat.get());
         return gpu_queue.submit([&](sycl::handler& cgh) {
             auto dat_accessor = dat_buffer.get_access<sycl::access::mode::read_write>(cgh);
@@ -168,7 +167,6 @@ void d3pt7dpc() {
     };
     auto dcpbrick_scatter = [&grid_dev, &bInfo_dev, &bStorage, &coeff_dev]() -> sycl::event {
         auto dat_buffer = sycl::buffer<bElem>(bStorage.dat.get(), sycl::range(bStorage.chunks * bStorage.step));
-        dat_buffer.set_write_back(true);
         dat_buffer.set_final_data(bStorage.dat.get());
         return gpu_queue.submit([&](sycl::handler& cgh) {
             auto dat_accessor = dat_buffer.get_access<sycl::access::mode::read_write>(cgh);
