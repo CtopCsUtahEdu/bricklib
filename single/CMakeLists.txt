@@ -9,7 +9,7 @@ target_link_libraries(single-mpi brick brickhelper ${MPI_CXX_LIBRARIES})
 set_target_properties(single-mpi
         PROPERTIES OUTPUT_NAME mpi)
 
-if (HAS_SYCL AND OpenCL_FOUND)
+if (HAS_SYCL)
     set(SYCL3AXIS_INCLUDE_DIRS
             "${SYCL_DIR}/include"
             "${SYCL_DIR}/include/sycl")
@@ -17,7 +17,7 @@ if (HAS_SYCL AND OpenCL_FOUND)
             "-fsycl")
     VSTARGET(SYCL3AXIS ../stencils/3axis_sycl.cpp ../stencils/3axis_sycl-out.cpp)
     add_executable(single-sycl sycl.cpp ${VSTARGET_SYCL3AXIS_OUTPUT})
-    target_link_libraries(single-sycl brick brickhelper stdc++ sycl ${OpenCL_LIBRARIES})
+    target_link_libraries(single-sycl brick brickhelper stdc++ sycl)
     target_include_directories(single-sycl 
             PUBLIC "${SYCL_DIR}/include"
             PUBLIC "${SYCL_DIR}/include/sycl"

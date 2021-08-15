@@ -41,8 +41,8 @@ void syclinit() {
       const std::string DeviceVendor =
           Device.get_info<cl::sycl::info::device::vendor>();
 
-      return (Device.is_gpu() &&
-              (DeviceName.find("Xe Graphics") != std::string::npos))
+      return (Device.is_gpu() && (DeviceName.find("Xe") != std::string::npos) &&
+              (DeviceName.find("Graphics") != std::string::npos))
                  ? 1
                  : -1;
     }
@@ -112,13 +112,13 @@ void d3pt7() {
     auto len = bIdx.size();
 
     cgh.parallel_for<class brickStencilTrans>(nworkitem, [=](nd_item<1> WIid) {
-      ONEAPI::sub_group SG = WIid.get_sub_group();
-      int sglid = SG.get_local_id().get(0);
+      auto SG = WIid.get_sub_group();
+      auto sglid = SG.get_local_id().get(0);
 
       oclbrick bIn = {bDat_s.get_pointer(), adj_s.get_pointer(), 1024};
       oclbrick bOut = {bDat_s.get_pointer() + 512, adj_s.get_pointer(), 1024};
-      for (unsigned i = WIid.get_group(0); i < len;
-           i += WIid.get_group_range(0)) {
+      for (unsigned i = SG.get_group_id().get(0); i < len;
+           i += SG.get_group_range().get(0)) {
         unsigned b = bIdx_s[i];
         brick("7pt.py", VSVEC, (8, 8, 8), (VFOLD), b);
       }
