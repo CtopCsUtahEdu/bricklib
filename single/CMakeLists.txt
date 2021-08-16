@@ -12,14 +12,17 @@ set_target_properties(single-mpi
 if (HAS_SYCL)
     set(SYCL3AXIS_INCLUDE_DIRS
             "${SYCL_DIR}/include"
-            )
+            "${SYCL_DIR}/include/sycl")
     set(SYCL3AXIS_COMPILE_OPTIONS
-            "-fsycl"
-            )
-    VSTARGET(SYCL3AXIS ../stencils/3axis_sycl.cpp ${CMAKE_CURRENT_BINARY_DIR}/3axis_sycl-out.cpp)
+            "-fsycl")
+    VSTARGET(SYCL3AXIS ../stencils/3axis_sycl.cpp ../stencils/3axis_sycl-out.cpp)
     add_executable(single-sycl sycl.cpp ${VSTARGET_SYCL3AXIS_OUTPUT})
-    target_link_libraries(single-sycl brick brickhelper stdc++ sycl OpenCL)
-    target_include_directories(single-sycl PUBLIC "${SYCL_DIR}/include")
+    target_link_libraries(single-sycl brick brickhelper stdc++ sycl)
+    target_include_directories(single-sycl 
+            PUBLIC "${SYCL_DIR}/include"
+            PUBLIC "${SYCL_DIR}/include/sycl"
+            PUBLIC "${OpenCL_INCLUDE_DIRS}"
+            PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/stencils")
     target_link_directories(single-sycl PUBLIC "${SYCL_DIR}/lib")
     # sycl need option for both phase
     target_compile_options(single-sycl PUBLIC "-fsycl")

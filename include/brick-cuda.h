@@ -50,7 +50,7 @@ BrickInfo<dims> movBrickInfo(BrickInfo<dims> &bInfo, cudaMemcpyKind kind) {
   if (kind == cudaMemcpyHostToDevice) {
     cudaCheck(cudaMalloc(&ret.adj, size));
   } else {
-    ret.adj = (unsigned (*)[static_power<3, dims>::value]) malloc(size);
+    ret.adj = (typename BrickInfo<dims>::adjlist) malloc(size);
   }
   cudaCheck(cudaMemcpy(ret.adj, bInfo.adj, size, kind));
   return ret;

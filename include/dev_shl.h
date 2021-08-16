@@ -8,7 +8,7 @@
 #ifndef BRICK_DEV_SHL_H
 #define BRICK_DEV_SHL_H
 
-#ifdef CL_SYCL_LANGUAGE_VERSION
+#if defined(CL_SYCL_LANGUAGE_VERSION) || defined(SYCL_LANGUAGE_VERSION)
 
 // template<typename T>
 // inline void dev_shl(cl::sycl::intel::sub_group &SG, T &res, T l, T r, unsigned kn, unsigned cw, unsigned cid) {
@@ -29,16 +29,18 @@
  * that produces random errors during computation
  */
 #define dev_shl(res, l, r, kn, cw, cid) do { \
-    float l_tmp = intel_sub_group_shuffle_down(l, l, cw - (kn)); \
-    float r_tmp = intel_sub_group_shuffle_up(r, r, kn); \
+    bElem l_tmp = sub_group_shuffle_down(l, cw - (kn)); \
+    bElem r_tmp = sub_group_shuffle_up(r, kn); \
     res = (cid) < kn? l_tmp : r_tmp; \
   } while(false)
 
 #else
 
 #define dev_shl(res, l, r, kn, cw, cid) do { \
-    float l_tmp = (cid) < cw - (kn)? r : l; \
-    res = intel_sub_group_shuffle(l_tmp, (sglid & (OCL_SUBGROUP - cw)) ^ ((sglid + cw - (kn)) & (cw - 1))); \
+    int rk = cw - (kn); \
+    bElem l_tmp = (cid) < rk? r : l; \
+    int oid = (sglid & (OCL_SUBGROUP - cw)) | ((sglid + rk) & (cw - 1)); \
+    res = sub_group_shuffle(l_tmp, oid); \
   } while(false)
 
 #endif

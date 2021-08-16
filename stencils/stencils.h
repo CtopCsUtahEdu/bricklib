@@ -8,7 +8,7 @@
 #include <omp.h>
 #include "brick.h"
 
-#define N 64
+#define N 256
 #define TILE 8
 
 #define GZ TILE

@@ -18,13 +18,29 @@ cl::Context *context;
 
 void clinit() {
   device = new cl::Device;
-  *device = cl::Device::getDefault();
-  {
-    std::cout << "Device: " << device->getInfo<CL_DEVICE_NAME>() << std::endl;
-    std::cout << "Hardware version: " << device->getInfo<CL_DEVICE_VERSION>() << std::endl;
-    std::cout << "Software version: " << device->getInfo<CL_DRIVER_VERSION>() << std::endl;
-    std::cout << "C Lang version: " << device->getInfo<CL_DEVICE_OPENCL_C_VERSION>() << std::endl;
-    std::cout << "Parallel units: " << device->getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl;
+  cl::vector<cl::Platform> platforms;  
+  cl::Platform::get(&platforms);  
+
+  for (auto plat: platforms) {
+    cl::vector<cl::Device> devices;  
+    plat.getDevices(CL_DEVICE_TYPE_GPU, &devices);  
+    if (!devices.empty()) {
+      std::cout << "Platform: " << plat.getInfo<CL_PLATFORM_NAME>() << std::endl;
+      std::cout << "Vendor: " << plat.getInfo<CL_PLATFORM_VENDOR>() << std::endl;
+
+      for (auto dev: devices)
+      {
+        std::cout << "\tDevice: " << dev.getInfo<CL_DEVICE_NAME>() << std::endl;
+        std::cout << "\tHardware version: " << dev.getInfo<CL_DEVICE_VERSION>() << std::endl;
+        std::cout << "\tSoftware version: " << dev.getInfo<CL_DRIVER_VERSION>() << std::endl;
+        std::cout << "\tC Lang version: " << dev.getInfo<CL_DEVICE_OPENCL_C_VERSION>() << std::endl;
+        std::cout << "\tParallel units: " << dev.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl;
+        if (dev.getInfo<CL_DEVICE_NAME>().find("Xe Graphics") != std::string::npos) {
+          *device = dev;
+          std::cout << "\t[Selected]" << std::endl;
+        }
+      }
+    }
   }
 
   context = new cl::Context(*device);
@@ -104,7 +120,7 @@ void d3pt7() {
   std::cout << "d3pt7" << std::endl;
   std::cout << "Arr: " << time_func(arr_func) << std::endl;
 
-  int ocl_iter = 100;
+  int ocl_iter = 1000;
   cl::Event st_event = brickStencil_cl(cl::EnqueueArgs(cl::NDRange(OCL_SUBGROUP * 1024), cl::NDRange(OCL_SUBGROUP)),
                                        bDat_buf, coeff_buf, adj_buf, bIdx_buf, bIdx.size());
   for (int i = 0; i < ocl_iter; ++i)
