@@ -8,7 +8,7 @@
 #ifndef BRICK_DEV_SHL_H
 #define BRICK_DEV_SHL_H
 
-#ifdef CL_SYCL_LANGUAGE_VERSION
+#if defined(CL_SYCL_LANGUAGE_VERSION) || defined(SYCL_LANGUAGE_VERSION)
 
 // template<typename T>
 // inline void dev_shl(cl::sycl::intel::sub_group &SG, T &res, T l, T r, unsigned kn, unsigned cw, unsigned cid) {

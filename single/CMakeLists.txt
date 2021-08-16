@@ -74,7 +74,7 @@ if (USE_DPC)
    set(CMAKE_CXX_STANDARD 17) 
    add_executable(single-dpc dpc.cpp ${VSTARGET_D3AXIS_OUTPUT})
    target_link_libraries(single-dpc brickhelper)
-   target_include_directories(single-dpc PUBLIC "$(which dpcpp)/../../sycl/")
+   target_include_directories(single-dpc PUBLIC "$(which dpcpp)/../../include/sycl/")
    set_target_properties(single-dpc PROPERTIES OUTPUT_NAME dpc)
 endif ()
 

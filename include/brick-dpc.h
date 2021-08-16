@@ -4,9 +4,6 @@
 // This file is largely used to give the DPCPP interface a similar footprint to CUDA and HIP so that it can easily be used with brick-gpu.h
 //
 
-#ifndef BRICK_BRICK_DPC_H
-#define BRICK_BRICK_DPC_H
-
 #include <CL/sycl.hpp>
 #include "brick.h"
 
@@ -144,7 +141,5 @@ struct DPCBrick<Dim<BDims...>, Dim<Folds...> > {
     step = bStep;
   }
 };
-
-#endif
 
 #include "brick-gpu.h"
