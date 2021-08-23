@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     def get_backend(vec):
         from st.codegen.backend import BackendAVX512, BackendAVX2, BackendScalar, BackendCUDA, BackendFlex, BackendSSE, \
-            BackendCuFlex, BackendASIMD
+            BackendCuFlex, BackendASIMD, BackendSVE
         if vec == 'AVX512':
             return BackendAVX512()
         elif vec == 'AVX2':
