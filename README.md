@@ -2,7 +2,7 @@
 
 ***Distributed Performance-portable Stencil Compuitation - [Documentation@bricks.run](https://bricks.run)***
 
-## Requirements
+## Compilation requirements
 
 * *C++14* compatible compiler
 * OpenMP
@@ -14,6 +14,11 @@
     * *SYCL*
     * *HIP* **WIP**
 
+We uses CMake to find libraries. If some library fails to load,
+be sure to check the find module for it in CMake and set the corresponding paths.
+Sometimes, libraries may not adhere to standards or CMake may not be up-to-date.
+In such cases, setting CMake variables directly in the top-most CMakeLists.txt is recommended.
+
 ## Building and running
 
 1. Clone the repository
@@ -23,6 +28,8 @@
 
 For description of the test cases see [here](docs/testcases.md).
 
+For the list of configuration variables, use `cmake -L ..` or `cmake-gui` in the build directory.
+
 ## Using the brick template
 
 The brick template consists of 3 part:
@@ -31,20 +38,20 @@ The brick template consists of 3 part:
 * `BrickInfo`: an adjacency list that describes the relations between bricks
 * `BrickStorage`: a chunk of memory for storing bricks
 
-The behavior of such templated data structures are as normal: they do not require the use of code generator to function;
+The behavior of such templated data structures are as normal:
+they do not require the use of code generator to function;
 provide a fallback way of writing code for compute & data movement.
 
 ## Stencil Expression Description
 
-Stencil expression for code generator are specified using [Python library](docs/stencilExpr.md). Code generator provide 
-optimization and vectorization support for different backend.
+Stencil expression for code generator are specified using [Python library](docs/stencilExpr.md).
+Code generator provide optimization and vectorization support for different backend.
 
-The code generation are carried out by CMake wrapper automatically. For details, see [Codegen Integration]().
+The code generation are carried out by CMake wrapper automatically. For details, see [Codegen Integration](docs/integration.md).
 
-# Dimension Ordering
+## Dimension Ordering
 
 Template arguments & code ordering is contiguous dimension last. Dimension arrays are contiguous at 0 (contiguous first).
-
 
 ## Directory & Files
 
@@ -68,6 +75,8 @@ A large portion of the brick library is entirely based on templates and can be i
 
 ## Publications
 
-@cite zhao2018 Zhao, Tuowen, Samuel Williams, Mary Hall, and Hans Johansen. "Delivering Performance-Portable Stencil Computations on CPUs and GPUs Using Bricks." In 2018 IEEE/ACM International Workshop on Performance, Portability and Productivity in HPC (P3HPC), pp. 59-70. IEEE, 2018. 
+@cite zhao2018 Zhao, Tuowen, Samuel Williams, Mary Hall, and Hans Johansen. 2018. Delivering Performance-Portable Stencil Computations on CPUs and GPUs Using Bricks. In 2018 IEEE/ACM International Workshop on Performance, Portability and Productivity in HPC (P3HPC). 59-70. DOI:[https://doi.org/10.1109/P3HPC.2018.00009](https://doi.org/10.1109/P3HPC.2018.00009)
 
-@cite zhao2019 Zhao, Tuowen, Protonu Basu, Samuel Williams, Mary Hall, and Hans Johansen. "Exploiting reuse and vectorization in blocked stencil computations on CPUs and GPUs." In Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis, p. 52. ACM, 2019.
+@cite zhao2019 Tuowen Zhao, Protonu Basu, Samuel Williams, Mary Hall, and Hans Johansen. 2019. Exploiting reuse and vectorization in blocked stencil computations on CPUs and GPUs. In Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC '19). Association for Computing Machinery, New York, NY, USA, Article 52, 1–44. DOI:[https://doi.org/10.1145/3295500.3356210](https://doi.org/10.1145/3295500.3356210)
+
+@cite zhao2021 Tuowen Zhao, Mary Hall, Hans Johansen, and Samuel Williams. 2021. Improving communication by optimizing on-node data movement with data layout. In Proceedings of the 26th ACM SIGPLAN Symposium on Principles and Practice of Parallel Programming (PPoPP '21). Association for Computing Machinery, New York, NY, USA, 304–317. DOI:[https://doi.org/10.1145/3437801.3441598](https://doi.org/10.1145/3437801.3441598)

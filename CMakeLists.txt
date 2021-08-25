@@ -68,8 +68,6 @@ if (HAS_SYCL)
     set(CMAKE_BUILD_RPATH "${SYCL_DIR}/lib")
 endif ()
 
-set(VS_PREPROCESSOR cpp CACHE STRING "Preprocessor for vector scatter")
-
 # BRICK_PROJECT_PATH is set when brick is used as a submodule
 # parent project should take care of VecScatter initialization
 if (NOT BRICK_PROJECT_PATH)

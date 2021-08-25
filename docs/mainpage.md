@@ -2,12 +2,22 @@
 
 ***Distributed Performance-portable Stencil Compuitation***
 
-# What is bricks
+## What is bricks
 
-Bricks is a data layout and code generation framework, enable performance-portable stencil across Intel CPUs, Intel 
-Knights Landing, Intel GPUs, NVIDIA GPUs, AMD GPUs. Math kernel code and data manipulation code is shared across these 
-platform, while achieving best-in-class performance on all platforms simultaneously. Especially, Brick layout is well 
-suited to higher-order(bigger-wider) stencil computations.
+Bricks is a data layout and code generation framework, enable performance-portable stencil across a
+multitude of architectures
+
+* x86 CPUs (AVX2, AVX512)
+* ARM CPUs (ASIMD, SVE)
+* Intel Knights Landing (AVX512)
+* Intel GPUs (OpenCL/Sycl)
+    * *OpenCL >= 3.0* with support of *cl_khr_subgroup_shuffle_relative*
+* NVIDIA GPUs (CUDA)
+* AMD GPUs (HIP)
+
+Math kernel code and data manipulation code is shared across these
+platform, while achieving best-in-class performance on all platforms simultaneously.
+Especially, Brick layout is well suited to higher-order(bigger-wider) stencil computations.
 
 ---
 
@@ -29,7 +39,8 @@ Brick layout is flexible, allows flexible domain shapes and enables fast "ghost 
 
 ## Get the Code
 
-Get code from [Github](https://github.com/CtopCsUtahEdu/bricklib), and start exploring the code documentation here.
+Get code from [Github](https://github.com/CtopCsUtahEdu/bricklib), and start exploring the
+[code documentation](https://bricks.run).
 
 ## Acknowledgements
 
@@ -40,6 +51,8 @@ Get code from [Github](https://github.com/CtopCsUtahEdu/bricklib), and start exp
 
 ## Publications
 
-@cite zhao2018 Zhao, Tuowen, Samuel Williams, Mary Hall, and Hans Johansen. "Delivering Performance-Portable Stencil Computations on CPUs and GPUs Using Bricks." In 2018 IEEE/ACM International Workshop on Performance, Portability and Productivity in HPC (P3HPC), pp. 59-70. IEEE, 2018. 
+@cite zhao2018 Zhao, Tuowen, Samuel Williams, Mary Hall, and Hans Johansen. 2018. Delivering Performance-Portable Stencil Computations on CPUs and GPUs Using Bricks. In 2018 IEEE/ACM International Workshop on Performance, Portability and Productivity in HPC (P3HPC). 59-70. DOI:[https://doi.org/10.1109/P3HPC.2018.00009](https://doi.org/10.1109/P3HPC.2018.00009)
 
-@cite zhao2019 Zhao, Tuowen, Protonu Basu, Samuel Williams, Mary Hall, and Hans Johansen. "Exploiting reuse and vectorization in blocked stencil computations on CPUs and GPUs." In Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis, p. 52. ACM, 2019.
+@cite zhao2019 Tuowen Zhao, Protonu Basu, Samuel Williams, Mary Hall, and Hans Johansen. 2019. Exploiting reuse and vectorization in blocked stencil computations on CPUs and GPUs. In Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis (SC '19). Association for Computing Machinery, New York, NY, USA, Article 52, 1–44. DOI:[https://doi.org/10.1145/3295500.3356210](https://doi.org/10.1145/3295500.3356210)
+
+@cite zhao2021 Tuowen Zhao, Mary Hall, Hans Johansen, and Samuel Williams. 2021. Improving communication by optimizing on-node data movement with data layout. In Proceedings of the 26th ACM SIGPLAN Symposium on Principles and Practice of Parallel Programming (PPoPP '21). Association for Computing Machinery, New York, NY, USA, 304–317. DOI:[https://doi.org/10.1145/3437801.3441598](https://doi.org/10.1145/3437801.3441598)
