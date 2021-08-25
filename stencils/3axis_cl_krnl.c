@@ -1,11 +1,11 @@
 #include <brick-opencl.h>
 
 #define VSVEC "OPENCL"
-#define VFOLD 4,8
+#define VFOLD 4, 8
 
-__kernel void stencil(__global bElem *bDat, __global const bElem *coeff, __global const unsigned *adj,
-    __global const unsigned *bIdx, unsigned len)
-__attribute__((intel_reqd_sub_group_size(OCL_SUBGROUP))) {
+__kernel void stencil(__global bElem *bDat, __global const bElem *coeff,
+                      __global const unsigned *adj, __global const unsigned *bIdx, unsigned len)
+    __attribute__((intel_reqd_sub_group_size(OCL_SUBGROUP))) {
   // Get the index of the current element to be processed
   int sglid = get_sub_group_local_id();
   int gps = get_num_groups(0);

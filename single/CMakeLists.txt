@@ -21,7 +21,6 @@ if (HAS_SYCL)
     target_include_directories(single-sycl 
             PUBLIC "${SYCL_DIR}/include"
             PUBLIC "${SYCL_DIR}/include/sycl"
-            PUBLIC "${OpenCL_INCLUDE_DIRS}"
             PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/stencils")
     target_link_directories(single-sycl PUBLIC "${SYCL_DIR}/lib")
     # sycl need option for both phase
