@@ -6,7 +6,8 @@ cmake-build-*
 *.swp
 
 # My CMake build
-build
+/build
+/build-*
 
 # Test artifacts
 *.o
@@ -24,3 +25,6 @@ __pycache__/
 
 # Compile commands
 compile_commands.json
+
+# VS code stuff
+/.vscode

@@ -1241,7 +1241,6 @@ class CodeGen:
                 if n.rhs.get_attr('offset'):
                     # When using scatter
                     from st.expr import conv_expr
-                    n.rhs: Reduction
                     val = conv_expr(Reduction.identity[n.rhs.operator])
                     red_init[n] = val
                     scatter_phase = True

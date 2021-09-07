@@ -1,0 +1,14 @@
+line-length:
+  line_length: 100
+  strict: false
+  stern: true
+
+ul-indent:
+  indent: 4
+
+no-hard-tabs:
+  code_blocks: true
+
+no-missing-space-atx: true
+
+no-multiple-space-atx: true
