@@ -1,7 +1,7 @@
-div.image img[src="fast-MPI-ghostzone.png"]{
+img.inline[src="fast-MPI-ghostzone.png"]{
     width:50%;
 }
 
-div.image img[src="performance-portability.png"]{
+img.inline[src="performance-portability.png"]{
     width:50%;
 }
