@@ -10,7 +10,7 @@ multitude of architectures
 * x86 CPUs (AVX2, AVX512)
 * ARM CPUs (ASIMD, SVE)
 * Intel Knights Landing (AVX512)
-* Intel GPUs (OpenCL/Sycl)
+* Intel GPUs (OpenCL/Sycl/DPC++)
     * *OpenCL >= 3.0* with support of *cl_khr_subgroup_shuffle_relative*
 * NVIDIA GPUs (CUDA)
 * AMD GPUs (HIP)
