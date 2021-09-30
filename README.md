@@ -11,8 +11,8 @@
 * **Optional** backends
     * *CUDA*
     * *OpenCL*
-    * *SYCL*
-    * *HIP* **WIP**
+    * *SYCL/DPC++*
+    * *HIP*
 
 We uses CMake to find libraries. If some library fails to load,
 be sure to check the find module for it in CMake and set the corresponding paths.
