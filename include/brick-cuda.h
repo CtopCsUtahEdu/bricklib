@@ -1,7 +1,11 @@
 /**
  * @file brick-cuda.h
- * @brief For using bricklib with CUDA. Directs the functions used in brick-gpu.h to corresponding CUDA functions
+ * @brief For using bricklib with CUDA. Directs the functions used in brick-gpu.h to corresponding
+ * CUDA functions
  */
+
+#ifndef BRICK_BRICK_CUDA_H
+#define BRICK_BRICK_CUDA_H
 
 #include <cuda_runtime.h>
 
@@ -15,3 +19,5 @@
 #define gpuSuccess cudaSuccess
 
 #include "brick-gpu.h"
+
+#endif // BRICK_BRICK_CUDA_H

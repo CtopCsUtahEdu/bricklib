@@ -1,8 +1,12 @@
-//
-// Written by Samantha Hirsch 7/22/21
-//
-// This file is largely used to give the DPCPP interface a similar footprint to CUDA and HIP so that it can easily be used with brick-gpu.h
-//
+/**
+ * @file brick-dpc.h
+ * @author Samantha Hirsch
+ * @brief This file is largely used to give the DPCPP interface a similar footprint to CUDA and HIP so that it can easily be used with brick-gpu.h
+ * @date 2021-07-22
+ */
+
+#ifndef BRICK_BRICK_DPC_H
+#define BRICK_BRICK_DPC_H
 
 #include <CL/sycl.hpp>
 #include "brick.h"
@@ -143,3 +147,5 @@ struct DPCBrick<Dim<BDims...>, Dim<Folds...> > {
 };
 
 #include "brick-gpu.h"
+
+#endif //BRICK_BRICK_GPU_H

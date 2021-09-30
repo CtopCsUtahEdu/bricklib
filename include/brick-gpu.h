@@ -1,5 +1,5 @@
 /**
- * @file
+ * @file brick-gpu.h
  * @brief This file should not be directly included. It defines instructions for using bricklib with a GPU, but either brick-hip.h or brick-cuda.h should be included for correct runtime support
  */
 
