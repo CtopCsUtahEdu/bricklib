@@ -5,7 +5,7 @@ project(brick
 
 cmake_policy(SET CMP0077 NEW)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(IgnoreMe "${CMAKE_C_COMPILER}")
 
@@ -83,8 +83,6 @@ if (HAS_SYCL)
     message(STATUS "SYCL compiler install dir: ${SYCL_DIR}")
     set(CMAKE_BUILD_RPATH "${SYCL_DIR}/lib")
 endif ()
-
-set(VS_PREPROCESSOR cpp CACHE STRING "Preprocessor for vector scatter")
 
 # BRICK_PROJECT_PATH is set when brick is used as a submodule
 # parent project should take care of VecScatter initialization

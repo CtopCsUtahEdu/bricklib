@@ -1,29 +1,68 @@
 @INPROCEEDINGS{zhao2018,
-author={T. {Zhao} and S. {Williams} and M. {Hall} and H. {Johansen}},
-booktitle={2018 IEEE/ACM International Workshop, P3HPC},
-title={Delivering Performance-Portable Stencil Computations on {CPU}s and {GPU}s Using Bricks},
+author={Zhao, Tuowen and Williams, Samuel and Hall, Mary and Johansen, Hans},
+booktitle={2018 IEEE/ACM International Workshop on Performance, Portability and Productivity in HPC (P3HPC)},
+title={Delivering Performance-Portable Stencil Computations on CPUs and GPUs Using Bricks},
 year={2018},
 volume={},
 number={},
 pages={59-70},
-doi={10.1109/P3HPC.2018.00009},
-ISSN={},
-month={Nov},}
+doi={10.1109/P3HPC.2018.00009}}
 
 @inproceedings{zhao2019,
- author = {T. {Zhao} and P. {Basu} and S. {Williams} and M. {Hall} and H. {Johansen}},
- title = {Exploiting Reuse and Vectorization in Blocked Stencil Computations on CPUs and GPUs},
- booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis},
- series = {SC '19},
- year = {2019},
- isbn = {978-1-4503-6229-0},
- location = {Denver, Colorado},
- pages = {52:1--52:44},
- articleno = {52},
- numpages = {44},
- doi = {10.1145/3295500.3356210},
- acmid = {3356210},
- publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {compiler optimization, stencil, vectorization},
+author = {Zhao, Tuowen and Basu, Protonu and Williams, Samuel and Hall, Mary and Johansen, Hans},
+title = {Exploiting Reuse and Vectorization in Blocked Stencil Computations on CPUs and GPUs},
+year = {2019},
+isbn = {9781450362290},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3295500.3356210},
+doi = {10.1145/3295500.3356210},
+abstract = {Stencil computations in real-world scientific applications may contain multiple interrelated
+stencils, have multiple input grids, and use higher order discretizations with high
+arithmetic intensity and complex expression structures. In combination, these properties
+place immense demands on the memory hierarchy that limit performance. Blocking techniques
+like tiling are used to exploit reuse in caches. Additional fine-grain data blocking
+can also reduce TLB, hardware prefetch, and cache pressure.In this paper, we present
+a code generation approach designed to further improve tiled stencil performance by
+exploiting reuse within the block, increasing instruction-level parallelism, and exposing
+opportunities for the backend compiler to eliminate redundant computation. It also
+enables efficient vector code generation for CPUs and GPUs. For a wide range of complex
+stencil computations, we are able to achieve substantial speedups over tiled baselines
+for the Intel KNL, Intel Skylake-X, and NVIDIA P100 architectures.},
+booktitle = {Proceedings of the International Conference for High Performance Computing, Networking, Storage and Analysis},
+articleno = {52},
+numpages = {44},
+keywords = {compiler optimization, stencil, vectorization},
+location = {Denver, Colorado},
+series = {SC '19}
+}
+
+@inproceedings{zhao2021,
+author = {Zhao, Tuowen and Hall, Mary and Johansen, Hans and Williams, Samuel},
+title = {Improving Communication by Optimizing On-Node Data Movement with Data Layout},
+year = {2021},
+isbn = {9781450382946},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3437801.3441598},
+doi = {10.1145/3437801.3441598},
+abstract = {We present optimizations to improve communication performance by reducing on-node
+data movement for a class of distributed memory applications. The primary concept
+is to eliminate the data movement associated with packing and unpacking subsets of
+the data during communication. With the rapid rise in network injection bandwidth
+reducing off-node data movement cost, on-node data movement can be significantly more
+expensive than computation and network communication. This data movement is especially
+costly for small domains - as in memory-intensive multi-physics codes or when strong
+scaling to reduce time-to-solution. The optimizations presented include (1) optimizing
+data layout through indirection to enable pack-free communication; (2) creating contiguous
+views of memory using memory mapping thus minimizing the number of messages; and (3)
+applying these techniques to intra-node data movement including CPU-GPU data movement.
+The benefits of these optimizations are demonstrated in stencil benchmarks against
+a highly-optimized baseline, reducing communication time by up to 14.4\texttimes{}.},
+booktitle = {Proceedings of the 26th ACM SIGPLAN Symposium on Principles and Practice of Parallel Programming},
+pages = {304–317},
+numpages = {14},
+keywords = {data blocking, data layout, MPI communication},
+location = {Virtual Event, Republic of Korea},
+series = {PPoPP '21}
 }

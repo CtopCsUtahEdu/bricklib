@@ -5,6 +5,8 @@ set(VecScatter_SCRIPT ${BRICK_PROJECT_PATH}/codegen/vecscatter)
 set(VecScatter_MODULE ${BRICK_PROJECT_PATH}/codegen)
 set(ENV{VecScatter_MODULE} ${BRICK_PROJECT_PATH}/codegen)
 
+set(VS_PREPROCESSOR cpp CACHE STRING "Preprocessor for vector scatter")
+
 macro(VSTARGET Name Input Output)
     get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
     set(VSTARGET_INC "")

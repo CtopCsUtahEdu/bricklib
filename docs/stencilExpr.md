@@ -2,18 +2,20 @@
 
 ## Purpose
 
-This language is to capture the capability and test the various aspect of the 
-"minimal" description for a stencil computation. We plan to support algebraic 
+This language is to capture the capability and test the various aspect of the
+"minimal" description for a stencil computation. We plan to support algebraic
 operations, transcendental intrinsics, and basic conditionals.
 
 ## Design
 
 Computation description composes of:
+
 * Axis index declaration
 * Grid (one-/multi-dimensional) declaration
 * Computation graph declaration
 
 Code generation targets:
+
 * C++/OpenMP
 * CUDA
 * Brick (transformed)
@@ -25,11 +27,13 @@ Code generation targets:
 #### Axis index declaration
 
 Axis index is declared to be contiguous in the 0-th direction then 1-st, 2-nd, etc.
+
 ~~~python
 index = Index(n:Int)
 ~~~
 
 Index class can be combined to form index expression
+
 ~~~python
 idx_expr = f(index)
 ~~~
@@ -64,7 +68,7 @@ abstraction.print_code()
 
 ## Example
 
-Examples are located in the `examples` directory. A short example of 7-pt 
+Examples are located in the `stencils` directory. A short example of 7-pt
 stencil can be expressed as follows:
 
 ~~~python
@@ -115,3 +119,18 @@ STENCIL=[output]
 ~~~
 
 See [integration](docs/integration.md).
+
+## Enable Code Suggestion in VS Code
+
+Put the following in `.vscode/settings.json`
+
+~~~json
+{
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/codegen"
+    ],
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}/codegen"
+    ]
+}
+~~~

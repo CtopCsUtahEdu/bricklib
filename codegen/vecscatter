@@ -19,7 +19,8 @@ if __name__ == "__main__":
     else:
         CPP = 'cpp'
 
-    parser = argparse.ArgumentParser(description='Inject vector scatter to your code!')
+    parser = argparse.ArgumentParser(description='Inject vector scatter to your code!',
+                                     epilog="pass compiler options after '--'")
     parser.add_argument('input', help='file name for the input source', type=str)
     parser.add_argument('output', help='file name for the output', type=str)
     parser.add_argument('--thres', '-t', metavar='Thres', default=1.5,
@@ -78,10 +79,9 @@ if __name__ == "__main__":
         absdir = "{}/".format(os.getcwd())
     os.chdir(absdir)
 
-
     def get_backend(vec):
         from st.codegen.backend import BackendAVX512, BackendAVX2, BackendScalar, BackendCUDA, BackendFlex, BackendSSE, \
-            BackendCuFlex, BackendASIMD
+            BackendCuFlex, BackendASIMD, BackendSVE
         if vec == 'AVX512':
             return BackendAVX512()
         elif vec == 'AVX2':
@@ -108,12 +108,10 @@ if __name__ == "__main__":
             return BackendSVE(int(vec[3:]))
         return BackendScalar()
 
-
     def get_prec(prec):
         if prec == 'double':
             return 2
         return 1
-
 
     def Tile(file, line, script_name, prec, vec, *, dim=None, tile_iter=None, stride=None):
         if file == src:
@@ -143,7 +141,6 @@ if __name__ == "__main__":
             source[line - 1] = '# 1 "VSTile-{}-{}-{}" 1\n'.format(os.path.basename(script_name), vec,
                                                                   "x".join([str(d) for d in reversed(dim)])) + \
                                s.getvalue() + '# {} "{}" 2\n'.format(line, abssrc)
-
 
     def Brick(file, line, script_name, prec, vec, *, bidx='b', dim=None, fold=None, stride=None):
         if file == src:
@@ -176,7 +173,6 @@ if __name__ == "__main__":
                                                                       "x".join([str(d) for d in reversed(dim)]),
                                                                       "x".join([str(f) for f in reversed(fold)])) + \
                                s.getvalue() + '# {} "{}" 2\n'.format(line, abssrc)
-
 
     for dir in reversed(loc):
         op = dir.split(' ')[2]

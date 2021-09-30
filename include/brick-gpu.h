@@ -10,12 +10,15 @@
 #include <brick.h>
 
 #ifndef NDEBUG
-    #define gpuCheck(x) x
-    #else
 
-    #include <cstdio>
-    #define gpuCheck(x) _gpuCheck(x, #x, __FILE__, __LINE__)
-#endif
+#define gpuCheck(x) x
+
+#else // defined(NDEBUG)
+
+#include <cstdio>
+#define gpuCheck(x) _gpuCheck(x, #x, __FILE__, __LINE__)
+
+#endif // NDEBUG
 
 template<typename T>
 void _gpuCheck(T e, const char *func, const char *call, const int line) {
