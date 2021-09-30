@@ -14,6 +14,10 @@
 /// BrickStorage allocation alignment
 #define ALIGN 2048
 
+#if defined(__HIP__)
+#include <hip/hip_runtime.h>
+#endif
+
 /// Overloaded attributes for potentially GPU-usable functions (in place of __host__ __device__ etc.)
 #if defined(__CUDACC__) || defined(__HIP__)
 #define FORCUDA __host__ __device__
@@ -65,7 +69,8 @@ struct BrickStorage {
     BrickStorage b;
     b.chunks = chunks;
     b.step = step;
-    b.dat = std::shared_ptr<bElem>((bElem*)aligned_alloc(ALIGN, chunks * step * sizeof(bElem)), free);
+    b.dat = std::shared_ptr<bElem>((bElem *)aligned_alloc(ALIGN, chunks * step * sizeof(bElem)),
+                                   [](bElem *p) { free(p); });
     return b;
   }
 

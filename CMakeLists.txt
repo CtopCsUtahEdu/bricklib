@@ -19,6 +19,22 @@ if (CMAKE_CUDA_COMPILER)
     set(CMAKE_CUDA_SEPARABLE_COMPILATION OFF)
 endif ()
 
+# hip/samples/2_Cookbook/12_cmake_hip_add_executable
+if (USE_HIP)
+    if(DEFINED ENV{HIP_PATH})
+        set(HIP_PATH $ENV{HIP_PATH})
+    else()
+        set(HIP_PATH /opt/rocm/hip)
+    endif()
+    set(CMAKE_MODULE_PATH "${HIP_PATH}/cmake" ${CMAKE_MODULE_PATH})
+    list(APPEND CMAKE_PREFIX_PATH "${HIP_PATH}" "${HIP_PATH}/..")
+    find_package(HIP MODULE)
+    if (NOT HIP_FOUND)
+        message(FATAL_ERROR "HIP not found with USE_HIP specified")
+    endif()
+    find_package(hip REQUIRED)
+endif()
+
 find_package(OpenMP REQUIRED)
 find_package(MPI)
 find_package(OpenCL 2.0)
@@ -93,6 +109,7 @@ endif ()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler \"${CMAKE_CXX_FLAGS}\"")
+set(CMAKE_HIP_FLAGS "${OpenMP_CXX_FLAGS}")
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include

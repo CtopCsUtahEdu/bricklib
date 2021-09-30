@@ -35,7 +35,7 @@ class BackendCUDA(Backend):
 
     def setCodeGen(self, codegen):
         self.codegen = codegen
-        self.printer = PrinterCUDA()
+        self.printer = PrinterCUDA(self.LID)
         self.printer.codegen = codegen
 
     def genVectorLoop(self, group: CodeBlock):
@@ -155,8 +155,9 @@ class BackendCUDA(Backend):
 
 
 class PrinterCUDA(PrinterRed):
-    def __init__(self):
+    def __init__(self, LID):
         super().__init__()
+        self.LID = LID
         self.print.register(GridRef, self._print_gridref)
 
     def _print_gridref(self, node: GridRef, stream, prec=255):
@@ -173,7 +174,7 @@ class PrinterCUDA(PrinterRed):
                 if self.dimrels and self.dimrels[-idx.n - 1]:
                     comp = comp + st.expr.ConstRef(self.dimrels[-idx.n - 1])
                 if idx.n == 0:
-                    comp = comp + st.expr.ConstRef(BackendCUDA.LID)
+                    comp = comp + self.LID
                 off = self.offset[idx.n] + self.shift[idx.n] + node.offsets[idx.n]
                 if off:
                     comp = comp + st.expr.IntLiteral(off)
