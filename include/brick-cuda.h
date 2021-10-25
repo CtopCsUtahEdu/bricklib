@@ -17,6 +17,11 @@
 #define gpuFree(p) cudaFree(p)
 #define gpuGetErrorString(e) cudaGetErrorString(e)
 #define gpuSuccess cudaSuccess
+#define gpuDeviceSynchronize() cudaDeviceSynchronize()
+#define gpuMemcpyToSymbol(p, d, s) cudaMemcpyToSymbol(p, d, s)
+#define gpuDeviceSetCacheConfig(c) cudaDeviceSetCacheConfig(c)
+#define gpuFuncCachePreferL1 cudaFuncCachePreferL1
+#define gpuExecKernel(f, b, t, a...) f<<<b,t>>>(a)
 
 #include "brick-gpu.h"
 

@@ -7,7 +7,7 @@
 #include "bricksetup.h"
 #include "multiarray.h"
 #include "brickcompare.h"
-#include "gpuvfold.h"
+#include "cudavfold.h"
 
 __global__ void
 d3pt7_brick(unsigned (*grid)[STRIDEB][STRIDEB], Brick <Dim<BDIM>, Dim<VFOLD>> bIn, Brick <Dim<BDIM>, Dim<VFOLD>> bOut,

@@ -2,10 +2,10 @@
 // Created by ztuowen on 6/15/19.
 //
 
-#ifndef BRICK_GPUVFOLD_H
-#define BRICK_GPUVFOLD_H
+#ifndef BRICK_CUDAVFOLD_H
+#define BRICK_CUDAVFOLD_H
 
 #define VSVEC "CUDA"
 #define VFOLD 4,8
 
-#endif //BRICK_GPUVFOLD_H
+#endif //BRICK_CUDAVFOLD_H

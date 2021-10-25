@@ -8,7 +8,7 @@
 #include "bricksetup.h"
 #include "multiarray.h"
 #include "brickcompare.h"
-#include "gpuvfold.h"
+#include "hipvfold.h"
 
 #define COEFF_SIZE 129
 
