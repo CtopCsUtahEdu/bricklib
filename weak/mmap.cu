@@ -78,8 +78,8 @@ int main(int argc, char **argv) {
 
     CUdevice device = 0;
     CUcontext pctx;
-    cudaCheck((cudaError_t) cudaSetDevice(device));
-    cudaCheck((cudaError_t) cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
+    gpuCheck((cudaError_t) cudaSetDevice(device));
+    gpuCheck((cudaError_t) cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
 
     BrickDecomp<3, BDIM> bDecomp(dom_size, GZ);
     bDecomp.comm = cart;
@@ -140,9 +140,9 @@ int main(int argc, char **argv) {
 
     {
       long arr_size = stride[0] * stride[1] * stride[2] * sizeof(bElem);
-      cudaCheck(cudaMemAdvise(in_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
+      gpuCheck(cudaMemAdvise(in_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
       cudaMemPrefetchAsync(in_ptr, arr_size, device);
-      cudaCheck(cudaMemAdvise(out_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
+      gpuCheck(cudaMemAdvise(out_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
       cudaMemPrefetchAsync(out_ptr, arr_size, device);
     }
 
@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
     ExchangeView ev = bDecomp.exchangeView(bStorage);
 #endif
 
-    cudaCheck(cudaMemAdvise(bStorage.dat.get(),
+    gpuCheck(cudaMemAdvise(bStorage.dat.get(),
                             bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), cudaMemAdviseSetPreferredLocation,
                             device));
 
