@@ -8,14 +8,22 @@
 #define BRICK_BRICK_HIP_H
 
 #include <hip/hip_runtime.h>
+
 #define gpuMalloc(p, s) hipMalloc(p, s)
 #define gpuMemcpy(d, p, s, k) hipMemcpy(d, p, s, k)
+#define gpuFree(p) hipFree(p)
+#define gpuGetErrorString(e) hipGetErrorString(e)
+#define gpuDeviceSynchronize() hipDeviceSynchronize()
+#define gpuMemcpyToSymbol(p, d, s) hipMemcpyToSymbol(p, d, s, hipMemcpyHostToDevice)
+#define gpuDeviceSetCacheConfig(c) hipDeviceSetCacheConfig(c)
+
+#define gpuFuncCachePreferL1 hipFuncCachePreferL1
+#define gpuSuccess hipSuccess
 #define gpuMemcpyKind hipMemcpyKind
 #define gpuMemcpyHostToDevice hipMemcpyHostToDevice
 #define gpuMemcpyDeviceToHost hipMemcpyDeviceToHost
-#define gpuFree(p) hipFree(p)
-#define gpuGetErrorString(e) hipGetErrorString(e)
-#define gpuSuccess hipSuccess
+
+#define gpuExecKernel(f, b, t, a...) hipLaunchKernelGGL(f, b, t, 0, 0, a)
 
 #include "brick-gpu.h"
 

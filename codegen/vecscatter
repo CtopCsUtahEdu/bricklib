@@ -103,7 +103,7 @@ if __name__ == "__main__":
         elif vec == 'HIP':
             return BackendCUDA(64, 'hipThreadIdx_x')
         elif vec == 'DPCPP':
-            return BackendCUDA(64, 'sglid', ocl=False)
+            return BackendCUDA(16, 'sglid', ocl=False)
         elif vec[:3] == 'SVE':
             return BackendSVE(int(vec[3:]))
         return BackendScalar()

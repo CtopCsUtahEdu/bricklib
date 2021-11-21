@@ -8,7 +8,7 @@
 #include "bricksetup.h"
 #include "multiarray.h"
 #include "brickcompare.h"
-#include "gpuvfold.h"
+#include "hipvfold.h"
 
 #define COEFF_SIZE 129
 
@@ -70,8 +70,8 @@ __global__ void
 d3pt7_arr_scatter(bElem (*arr_in)[STRIDE][STRIDE], bElem (*arr_out)[STRIDE][STRIDE], bElem *coeff) {
   long k = GZ + hipBlockIdx_z * TILE;
   long j = GZ + hipBlockIdx_y * TILE;
-  long i = GZ + hipBlockIdx_x * 32;
-  tile("7pt.py", VSVEC, (TILE, TILE, 32), ("k", "j", "i"), (1, 1, 32));
+  long i = GZ + hipBlockIdx_x * 64;
+  tile("7pt.py", VSVEC, (TILE, TILE, 64), ("k", "j", "i"), (1, 1, 64));
 }
 
 #undef bIn

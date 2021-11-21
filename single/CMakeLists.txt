@@ -58,6 +58,7 @@ if (CMAKE_CUDA_COMPILER)
 endif ()
 
 if (USE_HIP)
+    set(H3AXIS_INCLUDE_DIRS "${HIP_PATH}/include")
     VSTARGET(H3AXIS ../stencils/3axis.hip.cpp ../stencils/3axis-out.hip.cpp)
     set(HIP_SRCS hip.cpp ${VSTARGET_H3AXIS_OUTPUT})
     set_source_files_properties(${HIP_SRCS} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)

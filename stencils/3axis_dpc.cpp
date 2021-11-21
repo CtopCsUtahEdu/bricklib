@@ -4,10 +4,9 @@
 #include "multiarray.h"
 #include "brick-sycl.h"
 #include "brickcompare.h"
+#include "dpcvfold.h"
 
 #define COEFF_SIZE 129
-#define VSVEC "DPCPP"
-#define VFOLD 8, 8
 #define DPC_ITER 100
 
 typedef std::function<sycl::event()> timeable_func;
