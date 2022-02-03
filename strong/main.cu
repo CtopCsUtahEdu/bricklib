@@ -24,7 +24,7 @@
 #define TILE 8
 #define BDIM 8,8,8
 
-#include "stencils/gpuvfold.h"
+#include "stencils/cudavfold.h"
 #include "args.h"
 
 #define STRIDE (sdom_size + 2 * GZ)
