@@ -17,7 +17,7 @@
 #include <multiarray.h>
 #include <brickcompare.h>
 #include "stencils/cudaarray.h"
-#include "stencils/gpuvfold.h"
+#include "stencils/cudavfold.h"
 
 #include <unistd.h>
 #include <array-mpi.h>
