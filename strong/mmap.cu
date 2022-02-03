@@ -166,8 +166,8 @@ int main(int argc, char **argv) {
 
   CUdevice device = 0;
   CUcontext pctx;
-  cudaCheck((cudaError_t) cudaSetDevice(device));
-  cudaCheck((cudaError_t) cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
+  gpuCheck((cudaError_t) cudaSetDevice(device));
+  gpuCheck((cudaError_t) cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
 
   /* A ghost region can be in three states
    *   * Initial states (created) for communication
@@ -329,7 +329,7 @@ int main(int argc, char **argv) {
   std::vector<Brick3D> bricks_dev_vec;
 
   auto moveToGPU = [&device, &bDecomp](BrickStorage &bStorage) -> void {
-    cudaCheck(cudaMemAdvise(bStorage.dat.get(),
+    gpuCheck(cudaMemAdvise(bStorage.dat.get(),
                             bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), cudaMemAdviseSetPreferredLocation,
                             device));
 
