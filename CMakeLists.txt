@@ -11,6 +11,8 @@ set(IgnoreMe "${CMAKE_C_COMPILER}")
 
 include(CheckLanguage)
 include(CheckCXXCompilerFlag)
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
 check_language(CUDA)
 
 if (CMAKE_CUDA_COMPILER)
@@ -132,14 +134,6 @@ if (BRICK_BUILD_TEST)
     endif()
 endif ()
 
-# Install headers
-install(DIRECTORY include/ DESTINATION include/${CMAKE_PROJECT_NAME}
-        FILES_MATCHING PATTERN "*.h")
-
-# Install codegen
-install(DIRECTORY codegen/ DESTINATION lib/${CMAKE_PROJECT_NAME}
-        PATTERN "__pycache__" EXCLUDE)
-
 # Generating html doc from doxygen output
 set(PROJECT_INC_DIRS "${PROJECT_SOURCE_DIR}/include")
 
@@ -154,3 +148,33 @@ if (DOXYGEN_FOUND)
             COMMENT "Generating API documentation with Doxygen" VERBATIM
             )
 endif ()
+
+# Install script
+
+# Install headers
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${CMAKE_PROJECT_NAME}
+        FILES_MATCHING PATTERN "*.h")
+
+# Install codegen
+install(DIRECTORY codegen/ DESTINATION ${CMAKE_INSTALL_LIBDIR}/${CMAKE_PROJECT_NAME}/codegen
+        PATTERN "__pycache__" EXCLUDE)
+
+# Install codegen config
+install(DIRECTORY cmake/ DESTINATION ${CMAKE_INSTALL_LIBDIR}/${CMAKE_PROJECT_NAME}/cmake
+        FILES_MATCHING PATTERN "*.cmake")
+
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/brickConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/brickConfig.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake")
+
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/brickConfigVersion.cmake"
+    COMPATIBILITY AnyNewerVersion)
+
+install(EXPORT brick-targets 
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake")
+
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/brickConfig.cmake"
+              "${CMAKE_CURRENT_BINARY_DIR}/brickConfigVersion.cmake"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake")
