@@ -30,6 +30,9 @@ For description of the test cases see [here](docs/testcases.md).
 
 For the list of configuration variables, use `cmake -L ..` or `cmake-gui` in the build directory.
 
+This library can be used as either a submodule or be installed and linked to. `examples/external`
+provide an example of linking to this library from an external project.
+
 ## Using the brick template
 
 The brick template consists of 3 part:
