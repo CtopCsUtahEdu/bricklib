@@ -11,6 +11,7 @@
 #include "hipvfold.h"
 
 #define COEFF_SIZE 129
+#define WARPSIZE 64
 
 __global__ void
 d3pt7_brick(unsigned (*grid)[STRIDEB][STRIDEB], Brick <Dim<BDIM>, Dim<VFOLD>> bIn, Brick <Dim<BDIM>, Dim<VFOLD>> bOut,
@@ -54,7 +55,7 @@ __global__ void
 d3pt7_arr_warp(bElem (*arr_in)[STRIDE][STRIDE], bElem (*arr_out)[STRIDE][STRIDE], bElem *coeff) {
   long tk = PADDING + GZ + hipBlockIdx_z * TILE;
   long tj = PADDING + GZ + hipBlockIdx_y * TILE;
-  long i = PADDING + GZ + hipBlockIdx_x * 32 + hipThreadIdx_x;
+  long i = PADDING + GZ + hipBlockIdx_x * WARPSIZE + hipThreadIdx_x;
   for (int k = tk; k < tk + TILE; ++k)
     for (int j = tj; j < tj + TILE; ++j)
       arr_out[k][j][i] = coeff[5] * arr_in[k + 1][j][i] + coeff[6] * arr_in[k - 1][j][i] +
@@ -70,8 +71,8 @@ __global__ void
 d3pt7_arr_scatter(bElem (*arr_in)[STRIDE][STRIDE], bElem (*arr_out)[STRIDE][STRIDE], bElem *coeff) {
   long k = GZ + hipBlockIdx_z * TILE;
   long j = GZ + hipBlockIdx_y * TILE;
-  long i = GZ + hipBlockIdx_x * 64;
-  tile("7pt.py", VSVEC, (TILE, TILE, 64), ("k", "j", "i"), (1, 1, 64));
+  long i = GZ + hipBlockIdx_x * WARPSIZE;
+  tile("7pt.py", VSVEC, (TILE, TILE, WARPSIZE), ("k", "j", "i"), (1, 1, WARPSIZE));
 }
 
 #undef bIn
@@ -149,14 +150,14 @@ void d3pt7hip() {
     auto cuarr_warp = [&in_dev, &out_dev, &coeff_dev]() -> void {
         bElem(*arr_in)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) in_dev;
         bElem(*arr_out)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) out_dev;
-        dim3 block(N / 32, NB, NB), thread(32);
+        dim3 block(N / WARPSIZE, NB, NB), thread(WARPSIZE);
         hipLaunchKernelGGL(d3pt7_arr_warp, block, thread, 0, 0,
             arr_in, arr_out, coeff_dev);
     };
     auto cuarr_scatter = [&in_dev, &out_dev, &coeff_dev]() -> void {
         bElem(*arr_in)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) in_dev;
         bElem(*arr_out)[STRIDE][STRIDE] = (bElem (*)[STRIDE][STRIDE]) out_dev;
-        dim3 block(N / 32, NB, NB), thread(32);
+        dim3 block(N / WARPSIZE, NB, NB), thread(WARPSIZE);
         hipLaunchKernelGGL(d3pt7_arr_scatter, block, thread, 0, 0,
             arr_in, arr_out, coeff_dev);
     };
@@ -164,7 +165,7 @@ void d3pt7hip() {
         auto bSize = cal_size<BDIM>::value;
         Brick <Dim<BDIM>, Dim<VFOLD>> bIn(binfo_dev, bstorage_dev, 0);
         Brick <Dim<BDIM>, Dim<VFOLD>> bOut(binfo_dev, bstorage_dev, bSize);
-        dim3 block(NB, NB, NB), thread(32);
+        dim3 block(NB, NB, NB), thread(WARPSIZE);
         hipLaunchKernelGGL(d3pt7_brick_trans, block, thread, 0, 0,
             grid, bIn, bOut, coeff_dev);
     };
@@ -320,7 +321,7 @@ void d3condhip() {
     auto bSize = cal_size<BDIM>::value;
     Brick <Dim<BDIM>, Dim<VFOLD>> bIn(bInfo_dev, bStorage_dev, 0);
     Brick <Dim<BDIM>, Dim<VFOLD>> bOut(bInfo_dev, bStorage_dev, bSize);
-    dim3 block(NB, NB, NB), thread(32);
+    dim3 block(NB, NB, NB), thread(WARPSIZE);
     hipLaunchKernelGGL(d3cond_brick_trans, block, thread, 0, 0,
         grid, bIn, bOut, coeff_dev);
   };
