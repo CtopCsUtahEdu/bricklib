@@ -2,31 +2,31 @@
 // Created by Tuowen Zhao on 2/17/19.
 //
 
-#include <mpi.h>
-#include <iostream>
-#include <algorithm>
-#include <brick.h>
-#include <brick-mpi.h>
-#include <array-mpi.h>
-#include <bricksetup.h>
-#include <zmort.h>
-#include <map>
 #include "stencils/fake.h"
+#include <algorithm>
+#include <array-mpi.h>
+#include <brick-mpi.h>
+#include <brick.h>
+#include <bricksetup.h>
+#include <iostream>
+#include <map>
+#include <mpi.h>
+#include <zmort.h>
 
 #include "bitset.h"
-#include <multiarray.h>
 #include <brickcompare.h>
+#include <multiarray.h>
 
-#include <unistd.h>
 #include <memfd.h>
+#include <unistd.h>
 
 #define GZ 8
 #define TILE 8
 #define PADDING 8
-#define BDIM 8,8,8
+#define BDIM 8, 8, 8
 
-#include "stencils/cpuvfold.h"
 #include "args.h"
+#include "stencils/cpuvfold.h"
 
 #define STRIDE (sdom_size + 2 * GZ + 2 * PADDING)
 #define STRIDEG (sdom_size + 2 * GZ)
@@ -43,9 +43,9 @@ struct Subdomain {
   std::unordered_map<uint64_t, int> id_map;
 
   void cleanup() {
-    for (auto bStorage: storage)
+    for (auto bStorage : storage)
       if (bStorage->mmap_info != nullptr)
-        ((MEMFD *) bStorage->mmap_info)->cleanup();
+        ((MEMFD *)bStorage->mmap_info)->cleanup();
   }
 };
 
@@ -63,8 +63,7 @@ struct ExView {
   size_t len;
 };
 
-inline void brick_stencil_pencil(
-    Brick3D &out, Brick3D &in, long skip, unsigned *grid_ptr) {
+inline void brick_stencil_pencil(Brick3D &out, Brick3D &in, long skip, unsigned *grid_ptr) {
   for (long ti = skip; ti < STRIDEB - skip; ++ti) {
     unsigned b = grid_ptr[ti];
     brick(ST_SCRTPT, VSVEC, (BDIM), (VFOLD), b);
@@ -96,8 +95,8 @@ int main(int argc, char **argv) {
 
   // Create subdomains
   // This requires the number of subdomains on each dimension is a perfect 2-power
-  auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * STRIDEB * STRIDEB * STRIDEB);
-  auto grid = (unsigned (*)[STRIDEB][STRIDEB]) grid_ptr;
+  auto grid_ptr = (unsigned *)malloc(sizeof(unsigned) * STRIDEB * STRIDEB * STRIDEB);
+  auto grid = (unsigned(*)[STRIDEB][STRIDEB])grid_ptr;
 
   for (long i = 0; i < STRIDEB; ++i)
     for (long j = 0; j < STRIDEB; ++j)
@@ -134,9 +133,9 @@ int main(int argc, char **argv) {
 
     // Initialize with random numbers
     bElem *in_ptr = randomArray({STRIDE, STRIDE, STRIDE});
-    copyToBrick<3>({sdom_size + 2 * GZ, sdom_size + 2 * GZ, sdom_size + 2 * GZ}, {PADDING, PADDING, PADDING}, {0, 0, 0},
-                   in_ptr,
-                   grid_ptr, subdomains[idx].brick.back());
+    copyToBrick<3>({sdom_size + 2 * GZ, sdom_size + 2 * GZ, sdom_size + 2 * GZ},
+                   {PADDING, PADDING, PADDING}, {0, 0, 0}, in_ptr, grid_ptr,
+                   subdomains[idx].brick.back());
 
     // bOut
     bStorage = new BrickStorage();
@@ -154,7 +153,7 @@ int main(int argc, char **argv) {
       subdomains[idx].array.emplace_back(in_ptr);
       subdomains[idx].array.emplace_back(zeroArray({STRIDE, STRIDE, STRIDE}));
       // Populate rank map
-      for (auto &n: neighbors) {
+      for (auto &n : neighbors) {
         int dst, sub;
         ZMORT zmort = zid;
         getrank(n, zmort, dst, sub);
@@ -167,23 +166,23 @@ int main(int argc, char **argv) {
   }
 
   // Starts linking all internal/external regions
-  // This part assumes shared object so that the ghostzones on shared memory are reallocated to the correct page
-  // Unordered map specified the dest/src rank and a bunch of regions
+  // This part assumes shared object so that the ghostzones on shared memory are reallocated to the
+  // correct page Unordered map specified the dest/src rank and a bunch of regions
   std::unordered_map<int, std::vector<RegionSpec>> sendReg, recvReg;
 
   /* A ghost region can be in three states
    *   * Initial states (created) for communication
    *   * Linked with other region on the same node
    *   * Linked with other region's ghostzone
-   * A recorder is needed for #3 to find out where is the other region's ghostzone located, which is referenced by
-   * the targets (ID, inner parts no.), and need to produce:
+   * A recorder is needed for #3 to find out where is the other region's ghostzone located, which is
+   * referenced by the targets (ID, inner parts no.), and need to produce:
    *   1. ID
    *   2. Location within (This is not reflective)
    */
 
   // Individual link instead of whole section link
   typedef struct {
-    long i; // Index to other subdomain region
+    long i;     // Index to other subdomain region
     size_t pos; // Position in that subdomain
     size_t len; // Length of memory region
   } region_instance;
@@ -191,7 +190,7 @@ int main(int argc, char **argv) {
 
   for (long sidx = 0; sidx < subdomains.size(); ++sidx) {
     auto &s = subdomains[sidx];
-    for (auto n: neighbors) {
+    for (auto n : neighbors) {
       if (n.set == 0)
         continue;
       // get that neighbor's zmort
@@ -210,13 +209,15 @@ int main(int argc, char **argv) {
             if (ret != 0)
               throw std::runtime_error("Unmap failed");
             // map to the source - skin and ghost are mirrors
-            ((MEMFD *) subdomains[sub].storage[0]->mmap_info)
+            ((MEMFD *)subdomains[sub].storage[0]->mmap_info)
                 ->map_pointer(st, bDecomp.skin[i].pos * s.storage[0]->step * sizeof(bElem), len);
           } else {
             auto recv = recv_parts.find(dst);
             if (recv == recv_parts.end())
-              recv = recv_parts.emplace(std::piecewise_construct, std::forward_as_tuple(dst),
-                                        std::forward_as_tuple()).first;
+              recv = recv_parts
+                         .emplace(std::piecewise_construct, std::forward_as_tuple(dst),
+                                  std::forward_as_tuple())
+                         .first;
             // Un-map the ghost region
             long spos = bDecomp.ghost[i].pos * s.storage[0]->step;
             int ret = munmap(s.storage[0]->dat.get() + spos, len);
@@ -243,7 +244,7 @@ int main(int argc, char **argv) {
               else {
                 if (last_mfd >= 0 && last_size > 0) {
                   // Map from somewhere else or remap it back
-                  ((MEMFD *) subdomains[last_mfd].storage[0]->mmap_info)
+                  ((MEMFD *)subdomains[last_mfd].storage[0]->mmap_info)
                       ->map_pointer(hint, last_pos, last_size);
                 }
                 last_mfd = p->second.i;
@@ -255,15 +256,17 @@ int main(int argc, char **argv) {
             }
             if (last_mfd >= 0 && last_size > 0) {
               // Map from somewhere else or remap it back
-              ((MEMFD *) subdomains[last_mfd].storage[0]->mmap_info)
+              ((MEMFD *)subdomains[last_mfd].storage[0]->mmap_info)
                   ->map_pointer(hint, last_pos, last_size);
             }
           }
         } else if (n.set == bDecomp.skin[i].neighbor.set && dst != rank) {
           auto send = send_parts.find(dst);
           if (send == send_parts.end())
-            send = send_parts.emplace(std::piecewise_construct, std::forward_as_tuple(dst),
-                                      std::forward_as_tuple()).first;
+            send = send_parts
+                       .emplace(std::piecewise_construct, std::forward_as_tuple(dst),
+                                std::forward_as_tuple())
+                       .first;
           // Record the region
           long spos = bDecomp.skin[i].pos * s.storage[0]->step;
           for (int j = bDecomp.skin[i].skin_st; j < bDecomp.skin[i].skin_ed; ++j) {
@@ -286,31 +289,31 @@ int main(int argc, char **argv) {
 
   // For send/recv sections we create one view of memory for each target
 
-  for (auto &sregs: send_parts) {
+  for (auto &sregs : send_parts) {
     ExView sview;
     sview.ptr = nullptr;
     sview.len = 0;
     sview.rank = sregs.first;
-    sview.id = (int) sregs.second.begin()->first;
-    for (auto &sreg: sregs.second)
+    sview.id = (int)sregs.second.begin()->first;
+    for (auto &sreg : sregs.second)
       if (sreg.second.len) {
-        sview.ptr = ((MEMFD *) subdomains[sreg.second.i].storage[0]->mmap_info)->map_pointer(
-            nullptr, sreg.second.pos * sizeof(bElem), sreg.second.len);
+        sview.ptr = ((MEMFD *)subdomains[sreg.second.i].storage[0]->mmap_info)
+                        ->map_pointer(nullptr, sreg.second.pos * sizeof(bElem), sreg.second.len);
         sview.len += sreg.second.len;
       }
     sendViews.push_back(sview);
   }
 
-  for (auto &rregs: recv_parts) {
+  for (auto &rregs : recv_parts) {
     ExView rview;
     rview.ptr = nullptr;
     rview.len = 0;
     rview.rank = rregs.first;
-    rview.id = (int) rregs.second.begin()->first;
-    for (auto &rreg: rregs.second)
+    rview.id = (int)rregs.second.begin()->first;
+    for (auto &rreg : rregs.second)
       if (rreg.second.len) {
-        rview.ptr = ((MEMFD *) subdomains[rreg.second.i].storage[0]->mmap_info)->map_pointer(
-            nullptr, rreg.second.pos * sizeof(bElem), rreg.second.len);
+        rview.ptr = ((MEMFD *)subdomains[rreg.second.i].storage[0]->mmap_info)
+                        ->map_pointer(nullptr, rreg.second.pos * sizeof(bElem), rreg.second.len);
         rview.len += rreg.second.len;
       }
     recvViews.push_back(rview);
@@ -318,13 +321,14 @@ int main(int argc, char **argv) {
 
   // Actual calculation
   auto brick_stencil = [&grid_ptr, &subdomains](int out, int in, long skip) -> void {
-    auto grid = (unsigned (*)[STRIDEB][STRIDEB]) grid_ptr;
+    auto grid = (unsigned(*)[STRIDEB][STRIDEB])grid_ptr;
     int size = subdomains.size();
 #pragma omp parallel for collapse(3)
     for (int s = 0; s < size; ++s)
       for (long tk = skip; tk < STRIDEB - skip; ++tk)
         for (long tj = skip; tj < STRIDEB - skip; ++tj)
-          brick_stencil_pencil(subdomains[s].brick[out], subdomains[s].brick[in], skip, &(grid[tk][tj][0]));
+          brick_stencil_pencil(subdomains[s].brick[out], subdomains[s].brick[in], skip,
+                               &(grid[tk][tj][0]));
   };
 
   auto brick_func = [&]() -> void {
@@ -337,11 +341,11 @@ int main(int argc, char **argv) {
     std::vector<MPI_Request> requests(recvViews.size() + sendViews.size());
 
     for (int i = 0; i < recvViews.size(); ++i)
-      MPI_Irecv(recvViews[i].ptr, recvViews[i].len, MPI_CHAR, recvViews[i].rank, recvViews[i].id, MPI_COMM_WORLD,
-                &requests[i]);
+      MPI_Irecv(recvViews[i].ptr, recvViews[i].len, MPI_CHAR, recvViews[i].rank, recvViews[i].id,
+                MPI_COMM_WORLD, &requests[i]);
     for (int i = 0; i < sendViews.size(); ++i)
-      MPI_Isend(sendViews[i].ptr, sendViews[i].len, MPI_CHAR, sendViews[i].rank, sendViews[i].id, MPI_COMM_WORLD,
-                &requests[i + recvViews.size()]);
+      MPI_Isend(sendViews[i].ptr, sendViews[i].len, MPI_CHAR, sendViews[i].rank, sendViews[i].id,
+                MPI_COMM_WORLD, &requests[i + recvViews.size()]);
 
     double t_b = omp_get_wtime();
     calltime += t_b - t_a;
@@ -368,16 +372,16 @@ int main(int argc, char **argv) {
   double tot = time_mpi(brick_func, cnt, bDecomp);
   cnt *= ST_ITER;
   size_t tsize = 0;
-  for (auto &sview:sendViews)
+  for (auto &sview : sendViews)
     tsize += sview.len;
-  for (auto &rview:sendViews)
+  for (auto &rview : sendViews)
     tsize += rview.len;
 
   mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
   mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
   mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
   mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
-  mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+  mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
   double total = calc_s.avg + wait_s.avg + call_s.avg;
 
   if (rank == 0) {
@@ -400,8 +404,8 @@ int main(int argc, char **argv) {
       std::cout << "Validation is enabled by \"-v\" on the commandline, validating" << std::endl;
 
     auto array_stencil = [&](bElem *arrOut_ptr, bElem *arrIn_ptr, long skip) -> void {
-      auto arrIn = (bElem (*)[STRIDE][STRIDE]) arrIn_ptr;
-      auto arrOut = (bElem (*)[STRIDE][STRIDE]) arrOut_ptr;
+      auto arrIn = (bElem(*)[STRIDE][STRIDE])arrIn_ptr;
+      auto arrOut = (bElem(*)[STRIDE][STRIDE])arrOut_ptr;
       long skip2 = (skip / TILE) * TILE;
 #pragma omp parallel for collapse(2)
       for (long tk = PADDING + skip; tk < PADDING + STRIDEG - skip; tk += TILE)
@@ -410,12 +414,12 @@ int main(int argc, char **argv) {
             for (long k = tk; k < tk + TILE; ++k)
               for (long j = tj; j < tj + TILE; ++j)
 #pragma omp simd
-                  for (long i = ti; i < ti + TILE; ++i)
-                    ST_CPU;
+                for (long i = ti; i < ti + TILE; ++i)
+                  ST_CPU;
     };
 
     std::vector<ArrExPack> arrpack;
-    for (auto &s: subdomains) {
+    for (auto &s : subdomains) {
       ArrExPack p;
       p.arr = s.array[0];
       p.id = s.zmort.id - mysec_l;
@@ -424,20 +428,20 @@ int main(int argc, char **argv) {
       arrpack.emplace_back(p);
     }
     auto arr_func = [&]() -> void {
-      for (auto &s: subdomains)
+      for (auto &s : subdomains)
         exchangeArrAll<3>(arrpack, MPI_COMM_WORLD, {sdom_size, sdom_size, sdom_size},
                           {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
 
       double t_a = omp_get_wtime();
-      for (auto &s: subdomains)
+      for (auto &s : subdomains)
         array_stencil(s.array[1], s.array[0], 0);
       for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
-        for (auto &s: subdomains)
+        for (auto &s : subdomains)
           array_stencil(s.array[0], s.array[1], 0);
-        for (auto &s: subdomains)
+        for (auto &s : subdomains)
           array_stencil(s.array[1], s.array[0], 0);
       }
-      for (auto &s: subdomains)
+      for (auto &s : subdomains)
         array_stencil(s.array[0], s.array[1], TILE);
       double t_b = omp_get_wtime();
       calctime += t_b - t_a;
@@ -449,7 +453,7 @@ int main(int argc, char **argv) {
       std::cout << "Checking result" << std::endl;
 
     bool correct = true, allcorrect;
-    for (auto &s: subdomains)
+    for (auto &s : subdomains)
       if (!compareBrick<3>({sdom_size, sdom_size, sdom_size}, {PADDING, PADDING, PADDING},
                            {GZ, GZ, GZ}, s.array[0], grid_ptr, s.brick[0])) {
         std::cout << "Rank " << rank << " result mismatch at subdomain " << s.zmort.id << std::endl;

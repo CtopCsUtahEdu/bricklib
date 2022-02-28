@@ -2,32 +2,31 @@
 // Created by ztuowen on 8/23/19.
 //
 
+#include "args.h"
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <omp.h>
 #include <mpi.h>
+#include <omp.h>
 #include <unistd.h>
-#include "args.h"
 
-#define SUBDIM (dom_size/sdom_size)
+#define SUBDIM (dom_size / sdom_size)
 
 namespace {
-  const char *const shortopt = "d:s:I:hv";
-  const char *help =
-      "Running MPI with %s\n\n"
-      "Program options\n"
-      "  -h: show help (this message)\n"
-      "  -d Int: set domain size to d^3 (default 512)\n"
-      "  -s Int: set subdomain size to s^3 (default 128)\n"
-      "  Benchmark control:\n"
-      "  -I: number of iterations, default %d\n"
-      "  -v: enable validation (CPU only)\n"
-      "Example usage:\n"
-      "  %s -d 2048 -s 64\n";
+const char *const shortopt = "d:s:I:hv";
+const char *help = "Running MPI with %s\n\n"
+                   "Program options\n"
+                   "  -h: show help (this message)\n"
+                   "  -d Int: set domain size to d^3 (default 512)\n"
+                   "  -s Int: set subdomain size to s^3 (default 128)\n"
+                   "  Benchmark control:\n"
+                   "  -I: number of iterations, default %d\n"
+                   "  -v: enable validation (CPU only)\n"
+                   "Example usage:\n"
+                   "  %s -d 2048 -s 64\n";
 
-  unsigned long sec_len, sec_split, sec_shift;
-}
+unsigned long sec_len, sec_split, sec_shift;
+} // namespace
 
 unsigned long mysec_l, mysec_r;
 unsigned dom_size = 512, sdom_size = 128;
@@ -60,25 +59,25 @@ void parseArgs(int argc, char **argv, const char *program) {
   int c;
   while ((c = getopt(argc, argv, shortopt)) != -1) {
     switch (c) {
-      case 'd':
-        dom_size = std::stoi(optarg);
-        break;
-      case 's':
-        sdom_size = std::stoi(optarg);
-        break;
-      case 'I':
-        MPI_ITER = std::stoi(optarg);
-        break;
-      case 'v':
-        validate = true;
-        break;
-      default:
-        printf("Unknown options %c\n", c);
-      case 'h':
-        printf(help, program, MPI_ITER, argv[0]);
-        MPI_Finalize();
-        exit(0);
-        break;
+    case 'd':
+      dom_size = std::stoi(optarg);
+      break;
+    case 's':
+      sdom_size = std::stoi(optarg);
+      break;
+    case 'I':
+      MPI_ITER = std::stoi(optarg);
+      break;
+    case 'v':
+      validate = true;
+      break;
+    default:
+      printf("Unknown options %c\n", c);
+    case 'h':
+      printf(help, program, MPI_ITER, argv[0]);
+      MPI_Finalize();
+      exit(0);
+      break;
     }
   }
 
@@ -92,11 +91,14 @@ void parseArgs(int argc, char **argv, const char *program) {
 #pragma omp parallel shared(numthreads) default(none)
     numthreads = omp_get_num_threads();
     long page_size = sysconf(_SC_PAGESIZE);
-    std::cout << "Pagesize " << page_size << "; MPI Size " << size << " * OpenMP threads " << numthreads << std::endl;
-    std::cout << "Domain size of " << dom_size << "^3 decomposed into " << sdom_size << "^3 subdomains" << std::endl;
+    std::cout << "Pagesize " << page_size << "; MPI Size " << size << " * OpenMP threads "
+              << numthreads << std::endl;
+    std::cout << "Domain size of " << dom_size << "^3 decomposed into " << sdom_size
+              << "^3 subdomains" << std::endl;
     long n = dom_size / sdom_size;
     n = n * n * n;
-    std::cout << "Total of " << n << " subdomains, " << (n + size - 1) / size << " per rank" << std::endl;
+    std::cout << "Total of " << n << " subdomains, " << (n + size - 1) / size << " per rank"
+              << std::endl;
   }
 
   // setting up the owning subdomains
@@ -105,7 +107,7 @@ void parseArgs(int argc, char **argv, const char *program) {
 
   sec_shift = allsubs % size;
   sec_len = allsubs / size + (sec_shift > rank ? 1 : 0);
-  mysec_l = (unsigned long) rank * sec_len + (sec_shift > rank ? 0 : sec_shift);
+  mysec_l = (unsigned long)rank * sec_len + (sec_shift > rank ? 0 : sec_shift);
   mysec_r = mysec_l + sec_len;
   sec_split = sec_shift * ((allsubs + size - 1) / size);
   sec_len = allsubs / size;

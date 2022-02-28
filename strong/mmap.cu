@@ -2,33 +2,33 @@
 // Created by Tuowen Zhao on 2/17/19.
 //
 
-#include <mpi.h>
-#include <iostream>
-#include <algorithm>
-#include <brick.h>
-#include <brick-mpi.h>
-#include <bricksetup.h>
-#include <brick-cuda.h>
-#include <cuda.h>
-#include <zmort.h>
-#include <map>
 #include "stencils/fake.h"
+#include <algorithm>
+#include <brick-cuda.h>
+#include <brick-mpi.h>
+#include <brick.h>
+#include <bricksetup.h>
+#include <cuda.h>
+#include <iostream>
+#include <map>
+#include <mpi.h>
+#include <zmort.h>
 
 #include "bitset.h"
-#include <multiarray.h>
-#include <brickcompare.h>
 #include "stencils/cudaarray.h"
+#include <brickcompare.h>
+#include <multiarray.h>
 
-#include <unistd.h>
 #include <memfd.h>
+#include <unistd.h>
 
 #define GZ 8
 #define TILE 8
 #define PADDING 8
-#define BDIM 8,8,8
+#define BDIM 8, 8, 8
 
-#include "stencils/cudavfold.h"
 #include "args.h"
+#include "stencils/cudavfold.h"
 
 #define STRIDE (sdom_size + 2 * GZ + 2 * PADDING)
 #define STRIDEG (sdom_size + 2 * GZ)
@@ -42,9 +42,9 @@ struct Subdomain {
   std::vector<Brick3D> brick;
 
   void cleanup() {
-    for (auto bStorage: storage)
+    for (auto bStorage : storage)
       if (bStorage->mmap_info != nullptr)
-        ((MEMFD *) bStorage->mmap_info)->cleanup();
+        ((MEMFD *)bStorage->mmap_info)->cleanup();
   }
 };
 
@@ -54,8 +54,8 @@ struct ExView {
   size_t len;
 };
 
-__global__ void
-brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx, int inIdx) {
+__global__ void brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx,
+                             int inIdx) {
   unsigned s = blockIdx.z;
 
   unsigned bk = blockIdx.y;
@@ -71,8 +71,8 @@ brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx, in
 }
 
 // When it only contains a single domain remove the brick pointer to improve performance
-__global__ void
-brick_kernel_single_domain(unsigned *grid, Brick3D out, Brick3D in, unsigned strideb) {
+__global__ void brick_kernel_single_domain(unsigned *grid, Brick3D out, Brick3D in,
+                                           unsigned strideb) {
   unsigned bk = blockIdx.y;
   unsigned bj = blockIdx.x / strideb;
   unsigned bi = blockIdx.x % strideb;
@@ -107,8 +107,8 @@ int main(int argc, char **argv) {
 
   // Create subdomains
   // This requires the number of subdomains on each dimension is a perfect 2-power
-  auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * STRIDEB * STRIDEB * STRIDEB);
-  auto grid = (unsigned (*)[STRIDEB][STRIDEB]) grid_ptr;
+  auto grid_ptr = (unsigned *)malloc(sizeof(unsigned) * STRIDEB * STRIDEB * STRIDEB);
+  auto grid = (unsigned(*)[STRIDEB][STRIDEB])grid_ptr;
 
   for (long i = 0; i < STRIDEB; ++i)
     for (long j = 0; j < STRIDEB; ++j)
@@ -145,9 +145,9 @@ int main(int argc, char **argv) {
 
     // Initialize with random numbers
     bElem *in_ptr = randomArray({STRIDE, STRIDE, STRIDE});
-    copyToBrick<3>({sdom_size + 2 * GZ, sdom_size + 2 * GZ, sdom_size + 2 * GZ}, {PADDING, PADDING, PADDING}, {0, 0, 0},
-                   in_ptr,
-                   grid_ptr, subdomains[idx].brick.back());
+    copyToBrick<3>({sdom_size + 2 * GZ, sdom_size + 2 * GZ, sdom_size + 2 * GZ},
+                   {PADDING, PADDING, PADDING}, {0, 0, 0}, in_ptr, grid_ptr,
+                   subdomains[idx].brick.back());
 
     // bOut
     bStorage = new BrickStorage();
@@ -166,22 +166,22 @@ int main(int argc, char **argv) {
 
   CUdevice device = 0;
   CUcontext pctx;
-  gpuCheck((cudaError_t) cudaSetDevice(device));
-  gpuCheck((cudaError_t) cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
+  gpuCheck((cudaError_t)cudaSetDevice(device));
+  gpuCheck((cudaError_t)cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
 
   /* A ghost region can be in three states
    *   * Initial states (created) for communication
    *   * Linked with other region on the same node
    *   * Linked with other region's ghostzone
-   * A recorder is needed for #3 to find out where is the other region's ghostzone located, which is referenced by
-   * the targets (ID, inner parts no.), and need to produce:
+   * A recorder is needed for #3 to find out where is the other region's ghostzone located, which is
+   * referenced by the targets (ID, inner parts no.), and need to produce:
    *   1. ID
    *   2. Location within (This is not reflective)
    */
 
   // Individual link instead of whole section link
   typedef struct {
-    long i; // Index to other subdomain region
+    long i;     // Index to other subdomain region
     size_t pos; // Position in that subdomain
     size_t len; // Length of memory region
   } region_instance;
@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
 
   for (long sidx = 0; sidx < subdomains.size(); ++sidx) {
     auto &s = subdomains[sidx];
-    for (auto n: neighbors) {
+    for (auto n : neighbors) {
       if (n.set == 0)
         continue;
       // get that neighbor's zmort
@@ -208,13 +208,15 @@ int main(int argc, char **argv) {
             if (ret != 0)
               throw std::runtime_error("Unmap failed");
             // map to the source - skin and ghost are mirrors
-            ((MEMFD *) subdomains[sub].storage[0]->mmap_info)
+            ((MEMFD *)subdomains[sub].storage[0]->mmap_info)
                 ->map_pointer(st, bDecomp.skin[i].pos * s.storage[0]->step * sizeof(bElem), len);
           } else {
             auto recv = recv_parts.find(dst);
             if (recv == recv_parts.end())
-              recv = recv_parts.emplace(std::piecewise_construct, std::forward_as_tuple(dst),
-                                        std::forward_as_tuple()).first;
+              recv = recv_parts
+                         .emplace(std::piecewise_construct, std::forward_as_tuple(dst),
+                                  std::forward_as_tuple())
+                         .first;
             // Un-map the ghost region
             long spos = bDecomp.ghost[i].pos * s.storage[0]->step;
             int ret = munmap(s.storage[0]->dat.get() + spos, len);
@@ -241,7 +243,7 @@ int main(int argc, char **argv) {
               else {
                 if (last_mfd >= 0 && last_size > 0) {
                   // Map from somewhere else or remap it back
-                  ((MEMFD *) subdomains[last_mfd].storage[0]->mmap_info)
+                  ((MEMFD *)subdomains[last_mfd].storage[0]->mmap_info)
                       ->map_pointer(hint, last_pos, last_size);
                 }
                 last_mfd = p->second.i;
@@ -253,15 +255,17 @@ int main(int argc, char **argv) {
             }
             if (last_mfd >= 0 && last_size > 0) {
               // Map from somewhere else or remap it back
-              ((MEMFD *) subdomains[last_mfd].storage[0]->mmap_info)
+              ((MEMFD *)subdomains[last_mfd].storage[0]->mmap_info)
                   ->map_pointer(hint, last_pos, last_size);
             }
           }
         } else if (n.set == bDecomp.skin[i].neighbor.set && dst != rank) {
           auto send = send_parts.find(dst);
           if (send == send_parts.end())
-            send = send_parts.emplace(std::piecewise_construct, std::forward_as_tuple(dst),
-                                      std::forward_as_tuple()).first;
+            send = send_parts
+                       .emplace(std::piecewise_construct, std::forward_as_tuple(dst),
+                                std::forward_as_tuple())
+                       .first;
           // Record the region
           long spos = bDecomp.skin[i].pos * s.storage[0]->step;
           for (int j = bDecomp.skin[i].skin_st; j < bDecomp.skin[i].skin_ed; ++j) {
@@ -284,31 +288,31 @@ int main(int argc, char **argv) {
 
   // For send/recv sections we create one view of memory for each target
 
-  for (auto &sregs: send_parts) {
+  for (auto &sregs : send_parts) {
     ExView sview;
     sview.ptr = nullptr;
     sview.len = 0;
     sview.rank = sregs.first;
-    sview.id = (int) sregs.second.begin()->first;
-    for (auto &sreg: sregs.second)
+    sview.id = (int)sregs.second.begin()->first;
+    for (auto &sreg : sregs.second)
       if (sreg.second.len) {
-        sview.ptr = ((MEMFD *) subdomains[sreg.second.i].storage[0]->mmap_info)->map_pointer(
-            nullptr, sreg.second.pos * sizeof(bElem), sreg.second.len);
+        sview.ptr = ((MEMFD *)subdomains[sreg.second.i].storage[0]->mmap_info)
+                        ->map_pointer(nullptr, sreg.second.pos * sizeof(bElem), sreg.second.len);
         sview.len += sreg.second.len;
       }
     sendViews.push_back(sview);
   }
 
-  for (auto &rregs: recv_parts) {
+  for (auto &rregs : recv_parts) {
     ExView rview;
     rview.ptr = nullptr;
     rview.len = 0;
     rview.rank = rregs.first;
-    rview.id = (int) rregs.second.begin()->first;
-    for (auto &rreg: rregs.second)
+    rview.id = (int)rregs.second.begin()->first;
+    for (auto &rreg : rregs.second)
       if (rreg.second.len) {
-        rview.ptr = ((MEMFD *) subdomains[rreg.second.i].storage[0]->mmap_info)->map_pointer(
-            nullptr, rreg.second.pos * sizeof(bElem), rreg.second.len);
+        rview.ptr = ((MEMFD *)subdomains[rreg.second.i].storage[0]->mmap_info)
+                        ->map_pointer(nullptr, rreg.second.pos * sizeof(bElem), rreg.second.len);
         rview.len += rreg.second.len;
       }
     recvViews.push_back(rview);
@@ -329,11 +333,11 @@ int main(int argc, char **argv) {
   std::vector<Brick3D> bricks_dev_vec;
 
   auto moveToGPU = [&device, &bDecomp](BrickStorage &bStorage) -> void {
-    gpuCheck(cudaMemAdvise(bStorage.dat.get(),
-                            bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), cudaMemAdviseSetPreferredLocation,
-                            device));
+    gpuCheck(cudaMemAdvise(bStorage.dat.get(), bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem),
+                           cudaMemAdviseSetPreferredLocation, device));
 
-    cudaMemPrefetchAsync(bStorage.dat.get(), bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), device);
+    cudaMemPrefetchAsync(bStorage.dat.get(), bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem),
+                         device);
   };
 
   uint8_t *brickStorage_dev;
@@ -343,7 +347,8 @@ int main(int argc, char **argv) {
     moveToGPU(*subdomains[idx].storage[0]);
     for (int i = 1; i < 3; ++i) {
       BrickStorage bStorage_dev = *subdomains[idx].storage[i];
-      bStorage_dev.dat = std::shared_ptr<bElem>((bElem *) brickStorage_dev + sec_size * (idx * 2 + i - 1));
+      bStorage_dev.dat =
+          std::shared_ptr<bElem>((bElem *)brickStorage_dev + sec_size * (idx * 2 + i - 1));
       bricks_dev_vec.emplace_back(bInfo_dev, bStorage_dev, 0);
     }
   }
@@ -358,7 +363,7 @@ int main(int argc, char **argv) {
   cudaDeviceSynchronize();
 
   auto brick_func = [&grid_dev_ptr, &sendViews, &recvViews, &bricks_dev_vec,
-      &bricks_dev]() -> void {
+                     &bricks_dev]() -> void {
 #ifdef BARRIER_TIMESTEP
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
@@ -371,11 +376,11 @@ int main(int argc, char **argv) {
     std::vector<MPI_Request> requests(recvViews.size() + sendViews.size());
 
     for (int i = 0; i < recvViews.size(); ++i)
-      MPI_Irecv(recvViews[i].ptr, recvViews[i].len, MPI_CHAR, recvViews[i].rank, recvViews[i].id, MPI_COMM_WORLD,
-                &requests[i]);
+      MPI_Irecv(recvViews[i].ptr, recvViews[i].len, MPI_CHAR, recvViews[i].rank, recvViews[i].id,
+                MPI_COMM_WORLD, &requests[i]);
     for (int i = 0; i < sendViews.size(); ++i)
-      MPI_Isend(sendViews[i].ptr, sendViews[i].len, MPI_CHAR, sendViews[i].rank, sendViews[i].id, MPI_COMM_WORLD,
-                &requests[i + recvViews.size()]);
+      MPI_Isend(sendViews[i].ptr, sendViews[i].len, MPI_CHAR, sendViews[i].rank, sendViews[i].id,
+                MPI_COMM_WORLD, &requests[i + recvViews.size()]);
 
     double t_b = omp_get_wtime();
     calltime += t_b - t_a;
@@ -389,23 +394,23 @@ int main(int argc, char **argv) {
     cudaEventRecord(c_0);
     dim3 block(STRIDEB * STRIDEB, STRIDEB, mysec_r - mysec_l), thread(32);
     if (mysec_r - mysec_l > 1) {
-      brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 1, 0);
+      brick_kernel<<<block, thread>>>(grid_dev_ptr, STRIDEB, bricks_dev, 1, 0);
       for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
-        brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 2, 1);
-        brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 1, 2);
+        brick_kernel<<<block, thread>>>(grid_dev_ptr, STRIDEB, bricks_dev, 2, 1);
+        brick_kernel<<<block, thread>>>(grid_dev_ptr, STRIDEB, bricks_dev, 1, 2);
       }
-      brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 0, 1);
+      brick_kernel<<<block, thread>>>(grid_dev_ptr, STRIDEB, bricks_dev, 0, 1);
     } else {
-      brick_kernel_single_domain << < block, thread >> >
-                                             (grid_dev_ptr, bricks_dev_vec[1], bricks_dev_vec[0], STRIDEB);
+      brick_kernel_single_domain<<<block, thread>>>(grid_dev_ptr, bricks_dev_vec[1],
+                                                    bricks_dev_vec[0], STRIDEB);
       for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
-        brick_kernel_single_domain << < block, thread >> >
-                                               (grid_dev_ptr, bricks_dev_vec[2], bricks_dev_vec[1], STRIDEB);
-        brick_kernel_single_domain << < block, thread >> >
-                                               (grid_dev_ptr, bricks_dev_vec[1], bricks_dev_vec[2], STRIDEB);
+        brick_kernel_single_domain<<<block, thread>>>(grid_dev_ptr, bricks_dev_vec[2],
+                                                      bricks_dev_vec[1], STRIDEB);
+        brick_kernel_single_domain<<<block, thread>>>(grid_dev_ptr, bricks_dev_vec[1],
+                                                      bricks_dev_vec[2], STRIDEB);
       }
-      brick_kernel_single_domain << < block, thread >> >
-                                             (grid_dev_ptr, bricks_dev_vec[0], bricks_dev_vec[1], STRIDEB);
+      brick_kernel_single_domain<<<block, thread>>>(grid_dev_ptr, bricks_dev_vec[0],
+                                                    bricks_dev_vec[1], STRIDEB);
     }
     cudaEventRecord(c_1);
     cudaEventSynchronize(c_1);
@@ -418,16 +423,16 @@ int main(int argc, char **argv) {
   double tot = time_mpi(brick_func, cnt, bDecomp);
   cnt *= ST_ITER;
   size_t tsize = 0;
-  for (auto &sview:sendViews)
+  for (auto &sview : sendViews)
     tsize += sview.len;
-  for (auto &rview:sendViews)
+  for (auto &rview : sendViews)
     tsize += rview.len;
 
   mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
   mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
   mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
   mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
-  mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+  mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
   double total = calc_s.avg + call_s.avg + wait_s.avg;
 
   if (rank == 0) {

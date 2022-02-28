@@ -2,18 +2,18 @@
 // Created by Tuowen Zhao on 2/17/19.
 //
 
-#include <mpi.h>
-#include <iostream>
-#include <brick.h>
-#include <brick-mpi.h>
-#include <array-mpi.h>
-#include <bricksetup.h>
-#include "stencils/stencils.h"
 #include "stencils/fake.h"
+#include "stencils/stencils.h"
+#include <array-mpi.h>
+#include <brick-mpi.h>
+#include <brick.h>
+#include <bricksetup.h>
+#include <iostream>
+#include <mpi.h>
 
 #include "bitset.h"
-#include <multiarray.h>
 #include <brickcompare.h>
+#include <multiarray.h>
 
 #include <unistd.h>
 
@@ -64,33 +64,10 @@ int main(int argc, char **argv) {
     bElem *in_ptr = randomArray({STRIDE, STRIDE, STRIDE});
 
     std::vector<BitSet> skinlist = {
-        {1},
-        {1,  -3},
-        {1,  2,  -3},
-        {1,  2},
-        {1,  2,  3},
-        {2,  3},
-        {2},
-        {2,  -3},
-        {-1, 2,  -3},
-        {-1, 2},
-        {-1, 2,  3},
-        {-1, 3},
-        {-1},
-        {-3},
-        {-1, -3},
-        {-1, -2, -3},
-        {-1, -2},
-        {-1, -2, 3},
-        {-2, 3},
-        {-2},
-        {-2, -3},
-        {1,  -2, -3},
-        {1,  -2},
-        {1,  -2, 3},
-        {1,  3},
-        {3}
-    };
+        {1},         {1, -3},      {1, 2, -3}, {1, 2},      {1, 2, 3}, {2, 3}, {2},
+        {2, -3},     {-1, 2, -3},  {-1, 2},    {-1, 2, 3},  {-1, 3},   {-1},   {-3},
+        {-1, -3},    {-1, -2, -3}, {-1, -2},   {-1, -2, 3}, {-2, 3},   {-2},   {-2, -3},
+        {1, -2, -3}, {1, -2},      {1, -2, 3}, {1, 3},      {3}};
 
     BrickDecomp<3, BDIM> bDecomp({N, N, N}, GZ);
     bDecomp.comm = cart;
@@ -102,8 +79,8 @@ int main(int argc, char **argv) {
     auto bStorage = bInfo.mmap_alloc(bSize);
     auto bStorageOut = bInfo.mmap_alloc(bSize);
 
-    auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * STRIDEB * STRIDEB * STRIDEB);
-    auto grid = (unsigned (*)[STRIDEB][STRIDEB]) grid_ptr;
+    auto grid_ptr = (unsigned *)malloc(sizeof(unsigned) * STRIDEB * STRIDEB * STRIDEB);
+    auto grid = (unsigned(*)[STRIDEB][STRIDEB])grid_ptr;
 
     for (long i = 0; i < STRIDEB; ++i)
       for (long j = 0; j < STRIDEB; ++j)
@@ -124,20 +101,23 @@ int main(int argc, char **argv) {
       MPI_Info info;
       MPI_Info_create(&info);
       MPI_Info_set(info, "no_locks", "true");
-      MPI_Win_create(bStorage.dat.get(), bStorage.chunks * bStorage.step * sizeof(bElem), 1, info, cart, &win);
+      MPI_Win_create(bStorage.dat.get(), bStorage.chunks * bStorage.step * sizeof(bElem), 1, info,
+                     cart, &win);
     }
 
     Brick<Dim<BDIM>, Dim<VFOLD>> bIn(&bInfo, bStorage, 0);
     Brick<Dim<BDIM>, Dim<VFOLD>> bOut(&bInfo, bStorageOut, 0);
 
-    copyToBrick<3>({STRIDEG, STRIDEG, STRIDEG}, {PADDING, PADDING, PADDING}, {0, 0, 0}, in_ptr, grid_ptr, bIn);
+    copyToBrick<3>({STRIDEG, STRIDEG, STRIDEG}, {PADDING, PADDING, PADDING}, {0, 0, 0}, in_ptr,
+                   grid_ptr, bIn);
 
     bElem *out_ptr = zeroArray({STRIDE, STRIDE, STRIDE});
 
-    auto arr_in = (bElem (*)[STRIDE][STRIDE]) in_ptr;
-    auto arr_out = (bElem (*)[STRIDE][STRIDE]) out_ptr;
+    auto arr_in = (bElem(*)[STRIDE][STRIDE])in_ptr;
+    auto arr_out = (bElem(*)[STRIDE][STRIDE])out_ptr;
 
-    auto brick_stencil = [&](Brick<Dim<BDIM>, Dim<VFOLD>> &out, Brick<Dim<BDIM>, Dim<VFOLD>> &in) -> void {
+    auto brick_stencil = [&](Brick<Dim<BDIM>, Dim<VFOLD>> &out,
+                             Brick<Dim<BDIM>, Dim<VFOLD>> &in) -> void {
       _PARFOR
       for (long tk = 0; tk < STRIDEB; ++tk)
         for (long tj = 0; tj < STRIDEB; ++tj)
@@ -156,15 +136,17 @@ int main(int argc, char **argv) {
       }
     };
 
-    auto array_stencil = [&](bElem (*arrOut)[STRIDE][STRIDE], bElem (*arrIn)[STRIDE][STRIDE]) -> void {
-      _TILEFOR arrOut[k][j][i] = (arrIn[k + 1][j][i] + arrIn[k - 1][j][i] +
-                                  arrIn[k][j + 1][i] + arrIn[k][j - 1][i] +
-                                  arrIn[k][j][i + 1] + arrIn[k][j][i - 1]) * MPI_BETA +
+    auto array_stencil = [&](bElem(*arrOut)[STRIDE][STRIDE],
+                             bElem(*arrIn)[STRIDE][STRIDE]) -> void {
+      _TILEFOR arrOut[k][j][i] = (arrIn[k + 1][j][i] + arrIn[k - 1][j][i] + arrIn[k][j + 1][i] +
+                                  arrIn[k][j - 1][i] + arrIn[k][j][i + 1] + arrIn[k][j][i - 1]) *
+                                     MPI_BETA +
                                  arrIn[k][j][i] * MPI_ALPHA;
     };
 
     auto arr_func = [&]() -> void {
-      exchangeArr<3>(in_ptr, cart, bDecomp.rank_map, {N, N, N}, {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
+      exchangeArr<3>(in_ptr, cart, bDecomp.rank_map, {N, N, N}, {PADDING, PADDING, PADDING},
+                     {GZ, GZ, GZ});
       for (int i = 0; i < 4; ++i) {
         array_stencil(arr_out, arr_in);
         array_stencil(arr_in, arr_out);
@@ -205,7 +187,8 @@ int main(int argc, char **argv) {
       std::cout << "perf " << perf << " GStencil/s" << std::endl;
     }
 
-    if (!compareBrick<3>({N, N, N}, {PADDING, PADDING, PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
+    if (!compareBrick<3>({N, N, N}, {PADDING, PADDING, PADDING}, {GZ, GZ, GZ}, out_ptr, grid_ptr,
+                         bOut))
       std::cout << "result mismatch!" << std::endl;
 
     MPI_Win_free(&win);
@@ -214,8 +197,8 @@ int main(int argc, char **argv) {
     free(out_ptr);
     free(in_ptr);
 
-    ((MEMFD *) bStorage.mmap_info)->cleanup();
-    ((MEMFD *) bStorageOut.mmap_info)->cleanup();
+    ((MEMFD *)bStorage.mmap_info)->cleanup();
+    ((MEMFD *)bStorageOut.mmap_info)->cleanup();
   }
 
   MPI_Finalize();

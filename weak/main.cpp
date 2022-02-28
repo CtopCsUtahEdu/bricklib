@@ -2,29 +2,29 @@
 // Created by Tuowen Zhao on 2/17/19.
 //
 
-#include <mpi.h>
-#include <iostream>
-#include <brick.h>
-#include <brick-mpi.h>
-#include <array-mpi.h>
-#include <bricksetup.h>
-#include "stencils/stencils.h"
 #include "stencils/fake.h"
+#include "stencils/stencils.h"
+#include <array-mpi.h>
+#include <brick-mpi.h>
+#include <brick.h>
+#include <bricksetup.h>
+#include <iostream>
+#include <mpi.h>
 
 #include "bitset.h"
-#include <multiarray.h>
 #include <brickcompare.h>
+#include <multiarray.h>
 
 #include <unistd.h>
 
-#include "stencils/cpuvfold.h"
 #include "args.h"
+#include "stencils/cpuvfold.h"
 
 typedef Brick<Dim<BDIM>, Dim<VFOLD>> Brick3D;
 std::vector<long> stride(3), strideb(3), strideg(3);
 
 void brick_stencil(Brick3D &out, Brick3D &in, unsigned *grid_ptr, long skip) {
-  auto grid = (unsigned (*)[strideb[1]][strideb[0]]) grid_ptr;
+  auto grid = (unsigned(*)[strideb[1]][strideb[0]])grid_ptr;
   long s21 = strideb[2] - skip, s11 = strideb[1] - skip;
 #pragma omp parallel for collapse(2)
   for (long tk = skip; tk < s21; ++tk)
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
 
     int prd[3] = {1, 1, 1};
     int coo[3];
-    MPI_Cart_get(cart, 3, (int *) dim_size.data(), prd, coo);
+    MPI_Cart_get(cart, 3, (int *)dim_size.data(), prd, coo);
 
     for (int i = 0; i < 3; ++i) {
       stride[i] = dom_size[i] + 2 * TILE + 2 * GZ;
@@ -76,8 +76,8 @@ int main(int argc, char **argv) {
     auto bStorage = bInfo.mmap_alloc(bSize);
     auto bStorageOut = bInfo.mmap_alloc(bSize);
 
-    auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * strideb[2] * strideb[1] * strideb[0]);
-    auto grid = (unsigned (*)[strideb[1]][strideb[0]]) grid_ptr;
+    auto grid_ptr = (unsigned *)malloc(sizeof(unsigned) * strideb[2] * strideb[1] * strideb[0]);
+    auto grid = (unsigned(*)[strideb[1]][strideb[0]])grid_ptr;
 
     for (long k = 0; k < strideb[2]; ++k)
       for (long j = 0; j < strideb[1]; ++j)
@@ -100,8 +100,8 @@ int main(int argc, char **argv) {
 
     bElem *out_ptr = zeroArray({stride[0], stride[1], stride[2]});
 
-    auto arr_in = (bElem (*)[stride[1]][stride[0]]) in_ptr;
-    auto arr_out = (bElem (*)[stride[1]][stride[0]]) out_ptr;
+    auto arr_in = (bElem(*)[stride[1]][stride[0]])in_ptr;
+    auto arr_out = (bElem(*)[stride[1]][stride[0]])out_ptr;
 
 #ifndef DECOMP_PAGEUNALIGN
 #ifdef MWAITS
@@ -114,8 +114,8 @@ int main(int argc, char **argv) {
 #endif
 
     auto array_stencil = [&](bElem *arrOut_ptr, bElem *arrIn_ptr, long skip) -> void {
-      auto arrIn = (bElem (*)[stride[1]][stride[0]]) arrIn_ptr;
-      auto arrOut = (bElem (*)[stride[1]][stride[0]]) arrOut_ptr;
+      auto arrIn = (bElem(*)[stride[1]][stride[0]])arrIn_ptr;
+      auto arrOut = (bElem(*)[stride[1]][stride[0]])arrOut_ptr;
       long skip2 = (skip / TILE) * TILE;
       long s20 = PADDING + skip, s21 = PADDING + strideg[2];
       long s10 = PADDING + skip, s11 = PADDING + strideg[1];
@@ -126,14 +126,14 @@ int main(int argc, char **argv) {
             for (long k = tk; k < tk + TILE; ++k)
               for (long j = tj; j < tj + TILE; ++j)
 #pragma omp simd
-                  for (long i = ti; i < ti + TILE; ++i)
-                    ST_CPU;
+                for (long i = ti; i < ti + TILE; ++i)
+                  ST_CPU;
     };
 
     std::unordered_map<uint64_t, MPI_Datatype> stypemap;
     std::unordered_map<uint64_t, MPI_Datatype> rtypemap;
     exchangeArrPrepareTypes<3>(stypemap, rtypemap, {dom_size[0], dom_size[1], dom_size[2]},
-                        {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
+                               {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
     auto arr_func = [&]() -> void {
 #ifdef USE_TYPES
       exchangeArrTypes<3>(in_ptr, cart, bDecomp.rank_map, stypemap, rtypemap);
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
     double total;
 
     size_t tsize = 0;
-    for (auto g: bDecomp.ghost)
+    for (auto g : bDecomp.ghost)
       tsize += g.len * bStorage.step * sizeof(bElem) * 2;
 
     {
@@ -229,8 +229,9 @@ int main(int argc, char **argv) {
       mpi_stats pspd_s = mpi_statistics(tsize / 1.0e9 / packtime * cnt, MPI_COMM_WORLD);
       mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
       mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
-      mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
-      mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+      mpi_stats mspd_s =
+          mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
+      mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
       total = calc_s.avg + wait_s.avg + call_s.avg + pack_s.avg;
 
       if (rank == 0) {
@@ -244,7 +245,7 @@ int main(int argc, char **argv) {
         std::cout << "  | MPI size (MB): " << size_s << std::endl;
         std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
 
-        double perf = (double) tot_elems * 1.0e-9;
+        double perf = (double)tot_elems * 1.0e-9;
         perf = perf / total;
         std::cout << "perf " << perf << " GStencil/s" << std::endl;
         std::cout << std::endl;
@@ -257,13 +258,14 @@ int main(int argc, char **argv) {
       mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
       mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
       mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
-      mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
-      mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+      mpi_stats mspd_s =
+          mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
+      mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
 #ifndef DECOMP_PAGEUNALIGN
       size_t opt_size = 0;
-      for (auto s: ev.seclen)
+      for (auto s : ev.seclen)
         opt_size += s * 2;
-      mpi_stats opt_size_s = mpi_statistics((double) opt_size * 1.0e-6, MPI_COMM_WORLD);
+      mpi_stats opt_size_s = mpi_statistics((double)opt_size * 1.0e-6, MPI_COMM_WORLD);
 #endif
 
       total = calc_s.avg + wait_s.avg + call_s.avg;
@@ -280,7 +282,7 @@ int main(int argc, char **argv) {
 #endif
         std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
 
-        double perf = (double) tot_elems * 1.0e-9;
+        double perf = (double)tot_elems * 1.0e-9;
         perf = perf / total;
         std::cout << "perf " << perf << " GStencil/s" << std::endl;
         std::cout << "Total of " << bDecomp.ghost.size() << " parts" << std::endl;
@@ -295,8 +297,8 @@ int main(int argc, char **argv) {
     free(out_ptr);
     free(in_ptr);
 
-    ((MEMFD *) bStorage.mmap_info)->cleanup();
-    ((MEMFD *) bStorageOut.mmap_info)->cleanup();
+    ((MEMFD *)bStorage.mmap_info)->cleanup();
+    ((MEMFD *)bStorageOut.mmap_info)->cleanup();
   }
 
   MPI_Finalize();

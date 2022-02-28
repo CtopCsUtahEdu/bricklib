@@ -2,30 +2,29 @@
 // Created by Tuowen Zhao on 2/17/19.
 //
 
-#include <mpi.h>
-#include <iostream>
-#include <brick.h>
-#include <brick-mpi.h>
-#include <bricksetup.h>
-#include <brick-cuda.h>
-#include "stencils/stencils.h"
 #include "stencils/fake.h"
+#include "stencils/stencils.h"
+#include <brick-cuda.h>
+#include <brick-mpi.h>
+#include <brick.h>
+#include <bricksetup.h>
+#include <iostream>
+#include <mpi.h>
 
 #include "bitset.h"
-#include <multiarray.h>
-#include <brickcompare.h>
 #include "stencils/cudaarray.h"
 #include "stencils/cudavfold.h"
+#include <brickcompare.h>
+#include <multiarray.h>
 
-#include <unistd.h>
 #include <array-mpi.h>
+#include <unistd.h>
 
 #include "args.h"
 
 typedef Brick<Dim<BDIM>, Dim<VFOLD>> Brick3D;
 
-__global__ void
-arr_kernel(bElem *in_ptr, bElem *out_ptr, unsigned *stride) {
+__global__ void arr_kernel(bElem *in_ptr, bElem *out_ptr, unsigned *stride) {
   long k = PADDING + blockIdx.z * TILE + threadIdx.z;
   long j = PADDING + blockIdx.y * TILE + threadIdx.y;
   long i = PADDING + blockIdx.x * TILE + threadIdx.x;
@@ -33,8 +32,7 @@ arr_kernel(bElem *in_ptr, bElem *out_ptr, unsigned *stride) {
   ST_GPU;
 }
 
-__global__ void
-brick_kernel(unsigned *grid, Brick3D in, Brick3D out, unsigned *stride) {
+__global__ void brick_kernel(unsigned *grid, Brick3D in, Brick3D out, unsigned *stride) {
   unsigned bk = blockIdx.z;
   unsigned bj = blockIdx.y;
   unsigned bi = blockIdx.x;
@@ -66,7 +64,7 @@ int main(int argc, char **argv) {
 
     int prd[3] = {1, 1, 1};
     int coo[3];
-    MPI_Cart_get(cart, 3, (int *) dim_size.data(), prd, coo);
+    MPI_Cart_get(cart, 3, (int *)dim_size.data(), prd, coo);
 
     std::vector<long> stride(3), strideb(3), strideg(3);
 
@@ -93,8 +91,8 @@ int main(int argc, char **argv) {
     auto bStorageOut = bInfo.mmap_alloc(bSize);
 #endif
 
-    auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * strideb[2] * strideb[1] * strideb[0]);
-    auto grid = (unsigned (*)[strideb[1]][strideb[0]]) grid_ptr;
+    auto grid_ptr = (unsigned *)malloc(sizeof(unsigned) * strideb[2] * strideb[1] * strideb[0]);
+    auto grid = (unsigned(*)[strideb[1]][strideb[0]])grid_ptr;
 
     for (long k = 0; k < strideb[2]; ++k)
       for (long j = 0; j < strideb[1]; ++j)
@@ -135,7 +133,7 @@ int main(int argc, char **argv) {
     copyToDevice(stride, out_ptr_dev, out_ptr);
 
     size_t tsize = 0;
-    for (auto &g: bDecomp.ghost)
+    for (auto &g : bDecomp.ghost)
       tsize += g.len * bStorage.step * sizeof(bElem) * 2;
 
     std::unordered_map<uint64_t, MPI_Datatype> stypemap;
@@ -163,8 +161,8 @@ int main(int argc, char **argv) {
       cudaEventRecord(c_0);
       dim3 block(strideb[0], strideb[1], strideb[2]), thread(TILE, TILE, TILE);
       for (int i = 0; i < ST_ITER / 2; ++i) {
-        arr_kernel << < block, thread >> > (in_ptr_dev, out_ptr_dev, arr_stride_dev);
-        arr_kernel << < block, thread >> > (out_ptr_dev, in_ptr_dev, arr_stride_dev);
+        arr_kernel<<<block, thread>>>(in_ptr_dev, out_ptr_dev, arr_stride_dev);
+        arr_kernel<<<block, thread>>>(out_ptr_dev, in_ptr_dev, arr_stride_dev);
       }
       cudaEventRecord(c_1);
       cudaEventSynchronize(c_1);
@@ -190,7 +188,8 @@ int main(int argc, char **argv) {
       mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
       mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
       mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
-      mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
+      mpi_stats mspd_s =
+          mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
       mpi_stats move_s = mpi_statistics(movetime / cnt, MPI_COMM_WORLD);
       mpi_stats pack_s = mpi_statistics(packtime / cnt, MPI_COMM_WORLD);
       mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
@@ -207,7 +206,7 @@ int main(int argc, char **argv) {
         std::cout << "  | MPI size (MB): " << size_s << std::endl;
         std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
 
-        double perf = (double) tot_elems * 1.0e-9;
+        double perf = (double)tot_elems * 1.0e-9;
         perf = perf / total;
         std::cout << "perf " << perf << " GStencil/s" << std::endl;
         std::cout << std::endl;
@@ -278,8 +277,8 @@ int main(int argc, char **argv) {
       dim3 block(strideb[0], strideb[1], strideb[2]), thread(32);
       cudaEventRecord(c_0);
       for (int i = 0; i < ST_ITER / 2; ++i) {
-        brick_kernel << < block, thread >> > (grid_dev_ptr, bIn_dev, bOut_dev, grid_stride_dev);
-        brick_kernel << < block, thread >> > (grid_dev_ptr, bOut_dev, bIn_dev, grid_stride_dev);
+        brick_kernel<<<block, thread>>>(grid_dev_ptr, bIn_dev, bOut_dev, grid_stride_dev);
+        brick_kernel<<<block, thread>>>(grid_dev_ptr, bOut_dev, bIn_dev, grid_stride_dev);
       }
       cudaEventRecord(c_1);
       cudaEventSynchronize(c_1);
@@ -291,13 +290,14 @@ int main(int argc, char **argv) {
     cnt *= ST_ITER;
 
     // Copy back
-    cudaMemcpy(bStorageOut.dat.get(), bStorageOut_dev.dat.get(), bStorageOut.step * bStorageOut.chunks * sizeof(bElem),
-               cudaMemcpyDeviceToHost);
+    cudaMemcpy(bStorageOut.dat.get(), bStorageOut_dev.dat.get(),
+               bStorageOut.step * bStorageOut.chunks * sizeof(bElem), cudaMemcpyDeviceToHost);
     {
       mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
       mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
       mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
-      mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
+      mpi_stats mspd_s =
+          mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
       mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
       mpi_stats move_s = mpi_statistics(movetime / cnt, MPI_COMM_WORLD);
 
@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
         std::cout << "  | MPI size (MB): " << size_s << std::endl;
         std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
 
-        double perf = (double) tot_elems * 1.0e-9;
+        double perf = (double)tot_elems * 1.0e-9;
         perf = perf / total;
         std::cout << "perf " << perf << " GStencil/s" << std::endl;
       }
@@ -323,13 +323,13 @@ int main(int argc, char **argv) {
       std::cout << "result mismatch!" << std::endl;
 
     free(bInfo.adj);
-    
+
     free(out_ptr);
     free(in_ptr);
 
 #ifndef DECOMP_PAGEUNALIGN
-    ((MEMFD *) bStorage.mmap_info)->cleanup();
-    ((MEMFD *) bStorageOut.mmap_info)->cleanup();
+    ((MEMFD *)bStorage.mmap_info)->cleanup();
+    ((MEMFD *)bStorageOut.mmap_info)->cleanup();
 #endif
   }
 

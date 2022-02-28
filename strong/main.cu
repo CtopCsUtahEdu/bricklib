@@ -2,30 +2,30 @@
 // Created by Tuowen Zhao on 2/17/19.
 //
 
-#include <mpi.h>
-#include <iostream>
-#include <algorithm>
-#include <brick.h>
-#include <brick-mpi.h>
-#include <bricksetup.h>
-#include <brick-cuda.h>
-#include <zmort.h>
 #include "stencils/fake.h"
+#include <algorithm>
+#include <brick-cuda.h>
+#include <brick-mpi.h>
+#include <brick.h>
+#include <bricksetup.h>
+#include <iostream>
+#include <mpi.h>
+#include <zmort.h>
 
 #include "bitset.h"
-#include <multiarray.h>
-#include <brickcompare.h>
 #include "stencils/cudaarray.h"
+#include <brickcompare.h>
+#include <multiarray.h>
 
-#include <unistd.h>
 #include <array-mpi.h>
+#include <unistd.h>
 
 #define GZ 8
 #define TILE 8
-#define BDIM 8,8,8
+#define BDIM 8, 8, 8
 
-#include "stencils/cudavfold.h"
 #include "args.h"
+#include "stencils/cudavfold.h"
 
 #define STRIDE (sdom_size + 2 * GZ)
 #define STRIDEB (STRIDE / TILE)
@@ -39,9 +39,9 @@ struct Subdomain {
   std::vector<Brick3D> brick;
 
   void cleanup() {
-    for (auto bStorage: storage)
+    for (auto bStorage : storage)
       if (bStorage.mmap_info != nullptr)
-        ((MEMFD *) bStorage.mmap_info)->cleanup();
+        ((MEMFD *)bStorage.mmap_info)->cleanup();
   }
 };
 
@@ -51,8 +51,8 @@ struct RegionSpec {
   unsigned neighbor;
   unsigned skin_st;
   BrickStorage *storage, *storage_dev;
-  long pos; // Position within the subdomain
-  long len; // Length of the regions
+  long pos;    // Position within the subdomain
+  long len;    // Length of the regions
   long offset; // Offset in the send/recv buffer
   int rank;
 };
@@ -76,14 +76,14 @@ struct ExView {
 __global__ void cudaCopy(RegionLink *rl) {
   long i = blockIdx.x;
   long len = rl[i].len / sizeof(uint64_t);
-  uint64_t *from = (uint64_t *) rl[i].from;
-  uint64_t *to = (uint64_t *) rl[i].to;
+  uint64_t *from = (uint64_t *)rl[i].from;
+  uint64_t *to = (uint64_t *)rl[i].to;
   for (long x = threadIdx.x; x < len; x += blockDim.x)
     to[x] = from[x];
 }
 
-__global__ void
-brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx, int inIdx) {
+__global__ void brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx,
+                             int inIdx) {
   unsigned s = blockIdx.x / strideb;
 
   unsigned bk = blockIdx.z;
@@ -99,8 +99,8 @@ brick_kernel(unsigned *grid_ptr, unsigned strideb, Brick3D *barr, int outIdx, in
 }
 
 // When it only contains a single domain remove the brick pointer to improve performance
-__global__ void
-brick_kernel_single_domain(unsigned *grid, Brick3D in, Brick3D out, unsigned strideb) {
+__global__ void brick_kernel_single_domain(unsigned *grid, Brick3D in, Brick3D out,
+                                           unsigned strideb) {
   unsigned bk = blockIdx.z;
   unsigned bj = blockIdx.y;
   unsigned bi = blockIdx.x;
@@ -135,8 +135,8 @@ int main(int argc, char **argv) {
 
   // Create subdomains
   // This requires the number of subdomains on each dimension is a perfect 2-power
-  auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * STRIDEB * STRIDEB * STRIDEB);
-  auto grid = (unsigned (*)[STRIDEB][STRIDEB]) grid_ptr;
+  auto grid_ptr = (unsigned *)malloc(sizeof(unsigned) * STRIDEB * STRIDEB * STRIDEB);
+  auto grid = (unsigned(*)[STRIDEB][STRIDEB])grid_ptr;
 
   for (long i = 0; i < STRIDEB; ++i)
     for (long j = 0; j < STRIDEB; ++j)
@@ -165,7 +165,8 @@ int main(int argc, char **argv) {
 
     // Initialize with random numbers
     bElem *in_ptr = randomArray({STRIDE, STRIDE, STRIDE});
-    copyToBrick<3>({STRIDE, STRIDE, STRIDE}, {0, 0, 0}, {0, 0, 0}, in_ptr, grid_ptr, subdomains[idx].brick.back());
+    copyToBrick<3>({STRIDE, STRIDE, STRIDE}, {0, 0, 0}, {0, 0, 0}, in_ptr, grid_ptr,
+                   subdomains[idx].brick.back());
     subdomains[idx].storage_dev.push_back(movBrickStorage(bStorage, cudaMemcpyHostToDevice));
     free(in_ptr);
 
@@ -184,7 +185,7 @@ int main(int argc, char **argv) {
   std::unordered_map<int, std::vector<RegionSpec>> sendReg, recvReg;
   std::vector<RegionLink> links;
 
-  for (auto &s: subdomains) {
+  for (auto &s : subdomains) {
     for (int n_idx = 0; n_idx < neighbors.size(); ++n_idx) {
       BitSet n = neighbors[n_idx];
       if (n.set == 0)
@@ -201,15 +202,18 @@ int main(int argc, char **argv) {
             // Internal - record the link
             RegionLink rlink;
             rlink.to = s.storage_dev[0].dat.get() + bDecomp.ghost[i].pos * s.storage[0].step;
-            rlink.from = subdomains[sub].storage_dev[0].dat.get() + bDecomp.skin[i].pos * s.storage[0].step;
+            rlink.from =
+                subdomains[sub].storage_dev[0].dat.get() + bDecomp.skin[i].pos * s.storage[0].step;
             rlink.len = len;
             links.push_back(rlink);
           } else {
             // External - record the ghost list
             auto recv = recvReg.find(dst);
             if (recv == recvReg.end())
-              recv = recvReg.emplace(std::piecewise_construct, std::forward_as_tuple(dst),
-                                     std::forward_as_tuple()).first;
+              recv = recvReg
+                         .emplace(std::piecewise_construct, std::forward_as_tuple(dst),
+                                  std::forward_as_tuple())
+                         .first;
             RegionSpec rreg;
             rreg.storage = &(s.storage[0]);
             rreg.storage_dev = &(s.storage_dev[0]);
@@ -224,8 +228,10 @@ int main(int argc, char **argv) {
         } else if (n.set == bDecomp.skin[i].neighbor.set && dst != rank) {
           auto send = sendReg.find(dst);
           if (send == sendReg.end())
-            send = sendReg.emplace(std::piecewise_construct, std::forward_as_tuple(dst),
-                                   std::forward_as_tuple()).first;
+            send = sendReg
+                       .emplace(std::piecewise_construct, std::forward_as_tuple(dst),
+                                std::forward_as_tuple())
+                       .first;
           RegionSpec sreg;
           sreg.storage = &(s.storage[0]);
           sreg.storage_dev = &(s.storage_dev[0]);
@@ -250,18 +256,20 @@ int main(int argc, char **argv) {
     // sendReg needs to be coalesced
     std::unordered_map<int, std::vector<RegionSpec>> nsendReg;
 
-    for (auto &sregs:sendReg) {
+    for (auto &sregs : sendReg) {
       std::sort(sregs.second.begin(), sregs.second.end(), compareReg);
       ExView sview;
       sview.rank = sregs.first;
       sview.len = 0;
       long lid = -1;
       long led = 0;
-      auto send = nsendReg.emplace(std::piecewise_construct, std::forward_as_tuple(sregs.first),
-                                   std::forward_as_tuple()).first;
+      auto send = nsendReg
+                      .emplace(std::piecewise_construct, std::forward_as_tuple(sregs.first),
+                               std::forward_as_tuple())
+                      .first;
       RegionSpec nsreg;
       // Calculate the total amount of memory required and change the offset list
-      for (RegionSpec &sreg: sregs.second) {
+      for (RegionSpec &sreg : sregs.second) {
         if (lid != sreg.zmort.id || sreg.skin_st >= led) {
           if (lid > 0)
             send->second.push_back(nsreg);
@@ -290,14 +298,14 @@ int main(int argc, char **argv) {
       // Allocate the region
       cudaMalloc(&sview.reg, sview.len);
 #ifndef CUDA_AWARE
-      sview.host_reg = (bElem*) malloc(sview.len);
+      sview.host_reg = (bElem *)malloc(sview.len);
 #endif
       sendViews.push_back(sview);
     }
     sendReg = nsendReg;
   }
 
-  for (auto &rregs:recvReg) {
+  for (auto &rregs : recvReg) {
     std::sort(rregs.second.begin(), rregs.second.end(), compareReg);
     ExView rview;
     rview.rank = rregs.first;
@@ -305,7 +313,7 @@ int main(int argc, char **argv) {
     long lid = -1;
     long led = 0;
     // Calculate the total amount of memory required and change the offset list
-    for (RegionSpec &rreg: rregs.second) {
+    for (RegionSpec &rreg : rregs.second) {
       if (lid != rreg.zmort.id || rreg.skin_st >= led) {
         rreg.offset = rview.len;
         lid = rreg.zmort.id;
@@ -325,7 +333,7 @@ int main(int argc, char **argv) {
     // Allocate the region
     cudaMalloc(&rview.reg, rview.len);
 #ifndef CUDA_AWARE
-    rview.host_reg = (bElem*) malloc(rview.len);
+    rview.host_reg = (bElem *)malloc(rview.len);
 #endif
     recvViews.push_back(rview);
   }
@@ -358,36 +366,37 @@ int main(int argc, char **argv) {
 
   // Transfer links to GPU
   RegionLink *local_l_dev = nullptr;
-  copyToDevice({(long) links.size()}, local_l_dev, links.data());
+  copyToDevice({(long)links.size()}, local_l_dev, links.data());
 
   RegionLink *pack_l_dev = nullptr;
   std::vector<RegionLink> pack_links;
-  for (auto &sview: sendViews) {
-    for (auto &sreg: sendReg[sview.rank]) {
+  for (auto &sview : sendViews) {
+    for (auto &sreg : sendReg[sview.rank]) {
       RegionLink rlink;
       rlink.from = sreg.storage_dev->dat.get() + sreg.storage->step * sreg.pos;
-      rlink.to = (double *) (((uint8_t *) sview.reg) + sreg.offset);
+      rlink.to = (double *)(((uint8_t *)sview.reg) + sreg.offset);
       rlink.len = sreg.len;
       pack_links.push_back(rlink);
     }
   }
-  copyToDevice({(long) pack_links.size()}, pack_l_dev, pack_links.data());
+  copyToDevice({(long)pack_links.size()}, pack_l_dev, pack_links.data());
 
   RegionLink *unpack_l_dev = nullptr;
   std::vector<RegionLink> unpack_links;
-  for (auto &rview: recvViews) {
-    for (auto &rreg: recvReg[rview.rank]) {
+  for (auto &rview : recvViews) {
+    for (auto &rreg : recvReg[rview.rank]) {
       RegionLink rlink;
-      rlink.from = (double *) (((uint8_t *) rview.reg) + rreg.offset);
+      rlink.from = (double *)(((uint8_t *)rview.reg) + rreg.offset);
       rlink.to = rreg.storage_dev->dat.get() + rreg.storage->step * rreg.pos;
       rlink.len = rreg.len;
       unpack_links.push_back(rlink);
     }
   }
-  copyToDevice({(long) unpack_links.size()}, unpack_l_dev, unpack_links.data());
+  copyToDevice({(long)unpack_links.size()}, unpack_l_dev, unpack_links.data());
 
   auto brick_func = [&grid_dev_ptr, &sendViews, &sendReg, &recvViews, &recvReg, &bricks_dev_vec,
-      &bricks_dev, &links, &local_l_dev, &pack_links, &pack_l_dev, &unpack_links, &unpack_l_dev]() -> void {
+                     &bricks_dev, &links, &local_l_dev, &pack_links, &pack_l_dev, &unpack_links,
+                     &unpack_l_dev]() -> void {
 #ifdef BARRIER_TIMESTEP
     MPI_Barrier(MPI_COMM_WORLD);
 #endif
@@ -404,10 +413,11 @@ int main(int argc, char **argv) {
     cudaEventCreate(&c_0m);
     cudaEventCreate(&c_3m);
     // Exchange
-    std::vector <MPI_Request> requests(recvViews.size() + sendViews.size());
+    std::vector<MPI_Request> requests(recvViews.size() + sendViews.size());
     // IRecv/ISend
     for (int i = 0; i < recvViews.size(); ++i)
-      MPI_Irecv(recvViews[i].reg, recvViews[i].len, MPI_CHAR, recvViews[i].rank, 0, MPI_COMM_WORLD, &requests[i]);
+      MPI_Irecv(recvViews[i].reg, recvViews[i].len, MPI_CHAR, recvViews[i].rank, 0, MPI_COMM_WORLD,
+                &requests[i]);
 
     for (int i = 0; i < sendViews.size(); ++i)
       MPI_Isend(sendViews[i].reg, sendViews[i].len, MPI_CHAR, sendViews[i].rank, 0, MPI_COMM_WORLD,
@@ -417,7 +427,8 @@ int main(int argc, char **argv) {
     std::vector<MPI_Request> requests(recvViews.size() + sendViews.size());
     // IRecv/ISend
     for (int i = 0; i < recvViews.size(); ++i)
-      MPI_Irecv(recvViews[i].reg, recvViews[i].len, MPI_CHAR, recvViews[i].rank, 0, MPI_COMM_WORLD, &requests[i]);
+      MPI_Irecv(recvViews[i].reg, recvViews[i].len, MPI_CHAR, recvViews[i].rank, 0, MPI_COMM_WORLD,
+                &requests[i]);
 
     for (int i = 0; i < sendViews.size(); ++i)
       MPI_Isend(sendViews[i].reg, sendViews[i].len, MPI_CHAR, sendViews[i].rank, 0, MPI_COMM_WORLD,
@@ -428,7 +439,7 @@ int main(int argc, char **argv) {
 
     {
       dim3 block(links.size()), thread(64);
-      cudaCopy << < block, thread >> > (local_l_dev);
+      cudaCopy<<<block, thread>>>(local_l_dev);
     }
 
     // Wait
@@ -439,7 +450,7 @@ int main(int argc, char **argv) {
 
     cudaEventRecord(c_0);
 #ifndef CUDA_AWARE
-    for (auto &rview: recvViews)
+    for (auto &rview : recvViews)
       cudaMemcpyAsync(rview.reg, rview.host_reg, rview.len, cudaMemcpyHostToDevice);
 
     cudaEventRecord(c_0m);
@@ -447,32 +458,32 @@ int main(int argc, char **argv) {
     // Unpack
     {
       dim3 block(unpack_links.size()), thread(64);
-      cudaCopy << < block, thread >> > (unpack_l_dev);
+      cudaCopy<<<block, thread>>>(unpack_l_dev);
     }
     cudaEventRecord(c_1);
     dim3 block(STRIDEB * (mysec_r - mysec_l), STRIDEB, STRIDEB), thread(32);
     if (mysec_r - mysec_l > 1)
       for (int i = 0; i < ST_ITER / 2; ++i) {
-        brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 1, 0);
-        brick_kernel << < block, thread >> > (grid_dev_ptr, STRIDEB, bricks_dev, 0, 1);
+        brick_kernel<<<block, thread>>>(grid_dev_ptr, STRIDEB, bricks_dev, 1, 0);
+        brick_kernel<<<block, thread>>>(grid_dev_ptr, STRIDEB, bricks_dev, 0, 1);
       }
     else
       for (int i = 0; i < ST_ITER / 2; ++i) {
-        brick_kernel_single_domain << < block, thread >> >
-                                               (grid_dev_ptr, bricks_dev_vec[0], bricks_dev_vec[1], STRIDEB);
-        brick_kernel_single_domain << < block, thread >> >
-                                               (grid_dev_ptr, bricks_dev_vec[1], bricks_dev_vec[0], STRIDEB);
+        brick_kernel_single_domain<<<block, thread>>>(grid_dev_ptr, bricks_dev_vec[0],
+                                                      bricks_dev_vec[1], STRIDEB);
+        brick_kernel_single_domain<<<block, thread>>>(grid_dev_ptr, bricks_dev_vec[1],
+                                                      bricks_dev_vec[0], STRIDEB);
       }
     cudaEventRecord(c_2);
     // Pack
     {
       dim3 block(pack_links.size()), thread(64);
-      cudaCopy << < block, thread >> > (pack_l_dev);
+      cudaCopy<<<block, thread>>>(pack_l_dev);
     }
     cudaEventRecord(c_3);
 #ifndef CUDA_AWARE
     // Move every skin back to host
-    for (auto &sview: sendViews)
+    for (auto &sview : sendViews)
       cudaMemcpyAsync(sview.host_reg, sview.reg, sview.len, cudaMemcpyDeviceToHost);
 
     cudaEventRecord(c_3m);
@@ -502,17 +513,18 @@ int main(int argc, char **argv) {
 
   {
     // Pack
-    for (auto &sview: sendViews) {
+    for (auto &sview : sendViews) {
       size_t pos = 0;
-      for (auto &sreg: sendReg[sview.rank]) {
-        cudaMemcpyAsync(((uint8_t *) sview.reg) + pos, sreg.storage_dev->dat.get() + sreg.storage->step * sreg.pos, sreg.len,
+      for (auto &sreg : sendReg[sview.rank]) {
+        cudaMemcpyAsync(((uint8_t *)sview.reg) + pos,
+                        sreg.storage_dev->dat.get() + sreg.storage->step * sreg.pos, sreg.len,
                         cudaMemcpyDeviceToDevice);
         pos += sreg.len;
       }
     }
 #ifndef CUDA_AWARE
     // Move every skin back to host
-    for (auto &sview: sendViews)
+    for (auto &sview : sendViews)
       cudaMemcpyAsync(sview.host_reg, sview.reg, sview.len, cudaMemcpyDeviceToHost);
 #endif
     cudaDeviceSynchronize();
@@ -520,9 +532,9 @@ int main(int argc, char **argv) {
   double tot = time_mpi(brick_func, cnt, bDecomp);
   cnt *= ST_ITER;
   size_t tsize = 0;
-  for (auto &sview:sendViews)
+  for (auto &sview : sendViews)
     tsize += sview.len;
-  for (auto &rview:sendViews)
+  for (auto &rview : sendViews)
     tsize += rview.len;
 
   mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
@@ -532,7 +544,7 @@ int main(int argc, char **argv) {
   mpi_stats move_s = mpi_statistics(movetime / cnt, MPI_COMM_WORLD);
   mpi_stats pspd_s = mpi_statistics(tsize / 1.0e9 / packtime * cnt, MPI_COMM_WORLD);
   mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
-  mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+  mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
   double total = calc_s.avg + call_s.avg + wait_s.avg + move_s.avg + pack_s.avg;
 
   if (rank == 0) {
@@ -553,7 +565,7 @@ int main(int argc, char **argv) {
     std::cout << "part " << sendViews.size() + recvViews.size() << std::endl;
   }
 
-  for (auto &s: subdomains)
+  for (auto &s : subdomains)
     s.cleanup();
 
   MPI_Finalize();
