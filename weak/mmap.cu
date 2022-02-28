@@ -3,30 +3,29 @@
 // Experiments using unified memory (through ATS)
 //
 
-#include <mpi.h>
-#include <iostream>
-#include <brick.h>
-#include <brick-mpi.h>
-#include <bricksetup.h>
-#include <brick-cuda.h>
-#include <cuda.h>
-#include "stencils/stencils.h"
 #include "stencils/fake.h"
+#include "stencils/stencils.h"
+#include <brick-cuda.h>
+#include <brick-mpi.h>
+#include <brick.h>
+#include <bricksetup.h>
+#include <cuda.h>
+#include <iostream>
+#include <mpi.h>
 
 #include "bitset.h"
-#include <multiarray.h>
-#include <brickcompare.h>
 #include "stencils/cudaarray.h"
 #include "stencils/cudavfold.h"
+#include <brickcompare.h>
+#include <multiarray.h>
 
-#include <unistd.h>
-#include <array-mpi.h>
 #include "args.h"
+#include <array-mpi.h>
+#include <unistd.h>
 
 typedef Brick<Dim<BDIM>, Dim<VFOLD>> Brick3D;
 
-__global__ void
-arr_kernel(bElem *in_ptr, bElem *out_ptr, unsigned *stride) {
+__global__ void arr_kernel(bElem *in_ptr, bElem *out_ptr, unsigned *stride) {
   long k = PADDING + blockIdx.z * TILE + threadIdx.z;
   long j = PADDING + blockIdx.y * TILE + threadIdx.y;
   long i = PADDING + blockIdx.x * TILE + threadIdx.x;
@@ -34,8 +33,7 @@ arr_kernel(bElem *in_ptr, bElem *out_ptr, unsigned *stride) {
   ST_GPU;
 }
 
-__global__ void
-brick_kernel(unsigned *grid, Brick3D in, Brick3D out, unsigned *stride) {
+__global__ void brick_kernel(unsigned *grid, Brick3D in, Brick3D out, unsigned *stride) {
   unsigned bk = blockIdx.z;
   unsigned bj = blockIdx.y;
   unsigned bi = blockIdx.x;
@@ -64,7 +62,7 @@ int main(int argc, char **argv) {
 
     int prd[3] = {1, 1, 1};
     int coo[3];
-    MPI_Cart_get(cart, 3, (int *) dim_size.data(), prd, coo);
+    MPI_Cart_get(cart, 3, (int *)dim_size.data(), prd, coo);
 
     std::vector<long> stride(3), strideb(3), strideg(3);
 
@@ -78,8 +76,8 @@ int main(int argc, char **argv) {
 
     CUdevice device = 0;
     CUcontext pctx;
-    gpuCheck((cudaError_t) cudaSetDevice(device));
-    gpuCheck((cudaError_t) cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
+    gpuCheck((cudaError_t)cudaSetDevice(device));
+    gpuCheck((cudaError_t)cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
 
     BrickDecomp<3, BDIM> bDecomp(dom_size, GZ);
     bDecomp.comm = cart;
@@ -92,8 +90,8 @@ int main(int argc, char **argv) {
     auto bStorageInt0 = bInfo.allocate(bSize);
     auto bStorageInt1 = bInfo.allocate(bSize);
 
-    auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * strideb[2] * strideb[1] * strideb[0]);
-    auto grid = (unsigned (*)[strideb[1]][strideb[0]]) grid_ptr;
+    auto grid_ptr = (unsigned *)malloc(sizeof(unsigned) * strideb[2] * strideb[1] * strideb[0]);
+    auto grid = (unsigned(*)[strideb[1]][strideb[0]])grid_ptr;
 
     for (long k = 0; k < strideb[2]; ++k)
       for (long j = 0; j < strideb[1]; ++j)
@@ -126,8 +124,11 @@ int main(int argc, char **argv) {
       copyToDevice({3}, arr_stride_dev, arr_stride_tmp);
     }
 
-    bElem *out_ptr_dev = out_ptr;
-    bElem *in_ptr_dev = in_ptr;
+    bElem *in_ptr_dev = nullptr;
+    bElem *out_ptr_dev = nullptr;
+
+    copyToDevice(stride, in_ptr_dev, in_ptr);
+    copyToDevice(stride, out_ptr_dev, out_ptr);
 
     size_t tsize = 0;
     for (int i = 0; i < bDecomp.ghost.size(); ++i)
@@ -142,7 +143,8 @@ int main(int argc, char **argv) {
       long arr_size = stride[0] * stride[1] * stride[2] * sizeof(bElem);
       gpuCheck(cudaMemAdvise(in_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
       cudaMemPrefetchAsync(in_ptr, arr_size, device);
-      gpuCheck(cudaMemAdvise(out_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
+      gpuCheck(
+          cudaMemAdvise(out_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
       cudaMemPrefetchAsync(out_ptr, arr_size, device);
     }
 
@@ -160,10 +162,12 @@ int main(int argc, char **argv) {
 
       cudaEventRecord(c_0);
       dim3 block(strideb[0], strideb[1], strideb[2]), thread(TILE, TILE, TILE);
-      for (int i = 0; i < ST_ITER / 2; ++i) {
-        arr_kernel << < block, thread >> > (in_ptr_dev, out_ptr_dev, arr_stride_dev);
-        arr_kernel << < block, thread >> > (out_ptr_dev, in_ptr_dev, arr_stride_dev);
+      arr_kernel<<<block, thread>>>(in_ptr, out_ptr_dev, arr_stride_dev);
+      for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
+        arr_kernel<<<block, thread>>>(out_ptr_dev, in_ptr_dev, arr_stride_dev);
+        arr_kernel<<<block, thread>>>(in_ptr_dev, out_ptr_dev, arr_stride_dev);
       }
+      arr_kernel<<<block, thread>>>(out_ptr_dev, in_ptr, arr_stride_dev);
       cudaEventRecord(c_1);
       cudaEventSynchronize(c_1);
       cudaEventElapsedTime(&elapsed, c_0, c_1);
@@ -182,10 +186,11 @@ int main(int argc, char **argv) {
       mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
       mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
       mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
-      mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
+      mpi_stats mspd_s =
+          mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
       mpi_stats move_s = mpi_statistics(movetime / cnt, MPI_COMM_WORLD);
       mpi_stats pack_s = mpi_statistics(packtime / cnt, MPI_COMM_WORLD);
-      mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+      mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
 
       if (rank == 0) {
         total = calc_s.avg + call_s.avg + wait_s.avg + move_s.avg + pack_s.avg;
@@ -199,7 +204,7 @@ int main(int argc, char **argv) {
         std::cout << "  | MPI size (MB): " << size_s << std::endl;
         std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
 
-        double perf = (double) tot_elems * 1.0e-9;
+        double perf = (double)tot_elems * 1.0e-9;
         perf = perf / total;
         std::cout << "perf " << perf << " GStencil/s" << std::endl;
         std::cout << std::endl;
@@ -237,11 +242,11 @@ int main(int argc, char **argv) {
     ExchangeView ev = bDecomp.exchangeView(bStorage);
 #endif
 
-    gpuCheck(cudaMemAdvise(bStorage.dat.get(),
-                            bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), cudaMemAdviseSetPreferredLocation,
-                            device));
+    gpuCheck(cudaMemAdvise(bStorage.dat.get(), bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem),
+                           cudaMemAdviseSetPreferredLocation, device));
 
-    cudaMemPrefetchAsync(bStorage.dat.get(), bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem), device);
+    cudaMemPrefetchAsync(bStorage.dat.get(), bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem),
+                         device);
 
     cudaMemPrefetchAsync(grid_ptr, STRIDEB * STRIDEB * STRIDEB * sizeof(unsigned), device);
 
@@ -259,12 +264,12 @@ int main(int argc, char **argv) {
 
       dim3 block(strideb[0], strideb[1], strideb[2]), thread(32);
       cudaEventRecord(c_0);
-      brick_kernel << < block, thread >> > (grid_dev_ptr, bIn_dev, bInt0_dev, grid_stride_dev);
+      brick_kernel<<<block, thread>>>(grid_dev_ptr, bIn_dev, bInt0_dev, grid_stride_dev);
       for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
-        brick_kernel << < block, thread >> > (grid_dev_ptr, bInt0_dev, bInt1_dev, grid_stride_dev);
-        brick_kernel << < block, thread >> > (grid_dev_ptr, bInt1_dev, bInt0_dev, grid_stride_dev);
+        brick_kernel<<<block, thread>>>(grid_dev_ptr, bInt0_dev, bInt1_dev, grid_stride_dev);
+        brick_kernel<<<block, thread>>>(grid_dev_ptr, bInt1_dev, bInt0_dev, grid_stride_dev);
       }
-      brick_kernel << < block, thread >> > (grid_dev_ptr, bInt0_dev, bIn_dev, grid_stride_dev);
+      brick_kernel<<<block, thread>>>(grid_dev_ptr, bInt0_dev, bIn_dev, grid_stride_dev);
       cudaEventRecord(c_1);
       cudaEventSynchronize(c_1);
       cudaEventElapsedTime(&elapsed, c_0, c_1);
@@ -278,13 +283,14 @@ int main(int argc, char **argv) {
       mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
       mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
       mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
-      mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
-      mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+      mpi_stats mspd_s =
+          mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
+      mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
 #ifndef DECOMP_PAGEUNALIGN
       size_t opt_size = 0;
-      for (auto s: ev.seclen)
+      for (auto s : ev.seclen)
         opt_size += s * 2;
-      mpi_stats opt_size_s = mpi_statistics((double) opt_size * 1.0e-6, MPI_COMM_WORLD);
+      mpi_stats opt_size_s = mpi_statistics((double)opt_size * 1.0e-6, MPI_COMM_WORLD);
 #endif
 
       mpi_stats move_s = mpi_statistics(movetime / cnt, MPI_COMM_WORLD);
@@ -303,7 +309,7 @@ int main(int argc, char **argv) {
 #endif
         std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
 
-        double perf = (double) tot_elems * 1.0e-9;
+        double perf = (double)tot_elems * 1.0e-9;
         perf = perf / total;
         std::cout << "perf " << perf << " GStencil/s" << std::endl;
       }
@@ -317,7 +323,7 @@ int main(int argc, char **argv) {
     free(out_ptr);
     free(in_ptr);
 
-    ((MEMFD *) bStorage.mmap_info)->cleanup();
+    ((MEMFD *)bStorage.mmap_info)->cleanup();
   }
 
   MPI_Finalize();

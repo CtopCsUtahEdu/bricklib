@@ -2,18 +2,18 @@
 // Created by Tuowen Zhao on 2/17/19.
 //
 
-#include <mpi.h>
-#include <iostream>
-#include <brick.h>
-#include <brick-mpi.h>
-#include <array-mpi.h>
-#include <bricksetup.h>
-#include "stencils/stencils.h"
 #include "stencils/fake.h"
+#include "stencils/stencils.h"
+#include <array-mpi.h>
+#include <brick-mpi.h>
+#include <brick.h>
+#include <bricksetup.h>
+#include <iostream>
+#include <mpi.h>
 
 #include "bitset.h"
-#include <multiarray.h>
 #include <brickcompare.h>
+#include <multiarray.h>
 
 #include <unistd.h>
 
@@ -29,14 +29,14 @@
 #define TILE 4
 #define GZ (2 * TILE)
 #define PADDING 4
-#define BDIM TILE,TILE,TILE,TILE
+#define BDIM TILE, TILE, TILE, TILE
 
 #ifdef __AVX512__
 
 // Setting for X86 with at least AVX512 support
 #include <immintrin.h>
 #define VSVEC "AVX512"
-#define VFOLD 2,4
+#define VFOLD 2, 4
 
 #elif defined(__AVX2__)
 
@@ -44,7 +44,7 @@
 #include <immintrin.h>
 
 #define VSVEC "AVX2"
-#define VFOLD 2,2
+#define VFOLD 2, 2
 
 #else
 
@@ -61,7 +61,7 @@ typedef Brick<Dim<BDIM>, Dim<VFOLD>> Brick4D;
 std::vector<long> stride(DIMS), strideb(DIMS), strideg(DIMS);
 
 void brick_stencil(Brick4D &out, Brick4D &in, unsigned *grid_ptr, long skip) {
-  auto grid = (unsigned (*)[strideb[2]][strideb[1]][strideb[0]]) grid_ptr;
+  auto grid = (unsigned(*)[strideb[2]][strideb[1]][strideb[0]])grid_ptr;
   long s = skip / TILE;
   long s31 = strideb[3] - s, s21 = strideb[2] - s, s11 = strideb[1] - s;
 #pragma omp parallel for collapse(2)
@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
 
     int prd[4] = {1, 1, 1, 1};
     int coo[4];
-    MPI_Cart_get(cart, DIMS, (int *) dim_size.data(), prd, coo);
+    MPI_Cart_get(cart, DIMS, (int *)dim_size.data(), prd, coo);
 
     for (int i = 0; i < DIMS; ++i) {
       stride[i] = dom_size[i] + 2 * GZ + 2 * PADDING;
@@ -118,8 +118,9 @@ int main(int argc, char **argv) {
     auto bStorage = bInfo.mmap_alloc(bSize);
     auto bStorageOut = bInfo.mmap_alloc(bSize);
 
-    auto grid_ptr = (unsigned *) malloc(sizeof(unsigned) * stride[3] * strideb[2] * strideb[1] * strideb[0]);
-    auto grid = (unsigned (*)[strideb[2]][strideb[1]][strideb[0]]) grid_ptr;
+    auto grid_ptr =
+        (unsigned *)malloc(sizeof(unsigned) * stride[3] * strideb[2] * strideb[1] * strideb[0]);
+    auto grid = (unsigned(*)[strideb[2]][strideb[1]][strideb[0]])grid_ptr;
 
     for (long l = 0; l < strideb[3]; ++l)
       for (long k = 0; k < strideb[2]; ++k)
@@ -142,16 +143,17 @@ int main(int argc, char **argv) {
     Brick4D bIn(&bInfo, bStorage, 0);
     Brick4D bOut(&bInfo, bStorageOut, 0);
 
-    copyToBrick<DIMS>(strideg, {PADDING, PADDING, PADDING, PADDING}, {0, 0, 0, 0}, in_ptr, grid_ptr, bIn);
+    copyToBrick<DIMS>(strideg, {PADDING, PADDING, PADDING, PADDING}, {0, 0, 0, 0}, in_ptr, grid_ptr,
+                      bIn);
 
     if (!compareBrick<DIMS>({dom_size[0], dom_size[1], dom_size[2], dom_size[3]},
-                            {PADDING, PADDING, PADDING, PADDING},
-                            {GZ, GZ, GZ, GZ}, in_ptr, grid_ptr, bIn))
+                            {PADDING, PADDING, PADDING, PADDING}, {GZ, GZ, GZ, GZ}, in_ptr,
+                            grid_ptr, bIn))
       std::cout << "result mismatch!" << std::endl;
     bElem *out_ptr = zeroArray(stride);
 
-    auto arr_in = (bElem (*)[stride[2]][stride[1]][stride[0]]) in_ptr;
-    auto arr_out = (bElem (*)[stride[2]][stride[1]][stride[0]]) out_ptr;
+    auto arr_in = (bElem(*)[stride[2]][stride[1]][stride[0]])in_ptr;
+    auto arr_out = (bElem(*)[stride[2]][stride[1]][stride[0]])out_ptr;
 
 #ifndef DECOMP_PAGEUNALIGN
 #ifdef MWAITS
@@ -164,8 +166,8 @@ int main(int argc, char **argv) {
 #endif
 
     auto array_stencil = [&](bElem *arrOut_ptr, bElem *arrIn_ptr, long skip) -> void {
-      auto arrIn = (bElem (*)[stride[2]][stride[1]][stride[0]]) arrIn_ptr;
-      auto arrOut = (bElem (*)[stride[2]][stride[1]][stride[0]]) arrOut_ptr;
+      auto arrIn = (bElem(*)[stride[2]][stride[1]][stride[0]])arrIn_ptr;
+      auto arrOut = (bElem(*)[stride[2]][stride[1]][stride[0]])arrOut_ptr;
       long s = (skip / TILE) * TILE;
       long s30 = PADDING + s, s31 = PADDING + strideg[3];
       long s20 = PADDING + s, s21 = PADDING + strideg[2];
@@ -179,23 +181,26 @@ int main(int argc, char **argv) {
                 for (long k = tk; k < tk + TILE; ++k)
                   for (long j = tj; j < tj + TILE; ++j)
 #pragma omp simd
-                      for (long i = ti; i < ti + TILE; ++i)
-                        arrOut[l][k][j][i] = (arrIn[l + 1][k][j][i] + arrIn[l - 1][k][j][i] +
-                                              arrIn[l][k + 1][j][i] + arrIn[l][k - 1][j][i] +
-                                              arrIn[l][k][j + 1][i] + arrIn[l][k][j - 1][i] +
-                                              arrIn[l][k][j][i + 1] + arrIn[l][k][j][i - 1]) * 0.1 +
-                                             arrIn[l][k][j][i] * 0.2;
+                    for (long i = ti; i < ti + TILE; ++i)
+                      arrOut[l][k][j][i] =
+                          (arrIn[l + 1][k][j][i] + arrIn[l - 1][k][j][i] + arrIn[l][k + 1][j][i] +
+                           arrIn[l][k - 1][j][i] + arrIn[l][k][j + 1][i] + arrIn[l][k][j - 1][i] +
+                           arrIn[l][k][j][i + 1] + arrIn[l][k][j][i - 1]) *
+                              0.1 +
+                          arrIn[l][k][j][i] * 0.2;
     };
 
     std::unordered_map<uint64_t, MPI_Datatype> stypemap;
     std::unordered_map<uint64_t, MPI_Datatype> rtypemap;
-    exchangeArrPrepareTypes<DIMS>(stypemap, rtypemap, {dom_size[0], dom_size[1], dom_size[2], dom_size[3]},
+    exchangeArrPrepareTypes<DIMS>(stypemap, rtypemap,
+                                  {dom_size[0], dom_size[1], dom_size[2], dom_size[3]},
                                   {PADDING, PADDING, PADDING, PADDING}, {GZ, GZ, GZ, GZ});
     auto arr_func = [&]() -> void {
 #ifdef USE_TYPES
       exchangeArrTypes<DIMS>(in_ptr, cart, bDecomp.rank_map, stypemap, rtypemap);
 #else
-      exchangeArr<DIMS>(in_ptr, cart, bDecomp.rank_map, {dom_size[0], dom_size[1], dom_size[2], dom_size[3]},
+      exchangeArr<DIMS>(in_ptr, cart, bDecomp.rank_map,
+                        {dom_size[0], dom_size[1], dom_size[2], dom_size[3]},
                         {PADDING, PADDING, PADDING, PADDING}, {GZ, GZ, GZ, GZ});
 #endif
 #ifdef MPI_49PT
@@ -207,7 +212,7 @@ int main(int argc, char **argv) {
       exchangeArrTypes<DIMS>(out_ptr, cart, bDecomp.rank_map, stypemap, rtypemap);
 #else
       exchangeArr<DIMS>(out_ptr, cart, bDecomp.rank_map, {dom_size[0], dom_size[1], dom_size[2]},
-                     {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
+                        {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
 #endif
       t_a = omp_get_wtime();
       array_stencil(in_ptr, out_ptr, TILE);
@@ -275,7 +280,7 @@ int main(int argc, char **argv) {
     double total;
 
     size_t tsize = 0;
-    for (auto g: bDecomp.ghost)
+    for (auto g : bDecomp.ghost)
       tsize += g.len * bStorage.step * sizeof(bElem) * 2;
 
     {
@@ -286,8 +291,9 @@ int main(int argc, char **argv) {
       mpi_stats pspd_s = mpi_statistics(tsize / 1.0e9 / packtime * cnt, MPI_COMM_WORLD);
       mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
       mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
-      mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
-      mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+      mpi_stats mspd_s =
+          mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
+      mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
       total = calc_s.avg + wait_s.avg + call_s.avg + pack_s.avg;
 
       if (rank == 0) {
@@ -301,7 +307,7 @@ int main(int argc, char **argv) {
         std::cout << "  | MPI size (MB): " << size_s << std::endl;
         std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
 
-        double perf = (double) tot_elems * 1.0e-9;
+        double perf = (double)tot_elems * 1.0e-9;
         perf = perf / total;
         std::cout << "perf " << perf << " GStencil/s" << std::endl;
         std::cout << std::endl;
@@ -314,8 +320,9 @@ int main(int argc, char **argv) {
       mpi_stats calc_s = mpi_statistics(calctime / cnt, MPI_COMM_WORLD);
       mpi_stats wait_s = mpi_statistics(waittime / cnt, MPI_COMM_WORLD);
       mpi_stats call_s = mpi_statistics(calltime / cnt, MPI_COMM_WORLD);
-      mpi_stats mspd_s = mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
-      mpi_stats size_s = mpi_statistics((double) tsize * 1.0e-6, MPI_COMM_WORLD);
+      mpi_stats mspd_s =
+          mpi_statistics(tsize / 1.0e9 / (calltime + waittime) * cnt, MPI_COMM_WORLD);
+      mpi_stats size_s = mpi_statistics((double)tsize * 1.0e-6, MPI_COMM_WORLD);
       total = calc_s.avg + wait_s.avg + call_s.avg;
 
       if (rank == 0) {
@@ -327,7 +334,7 @@ int main(int argc, char **argv) {
         std::cout << "  | MPI size (MB): " << size_s << std::endl;
         std::cout << "  | MPI speed (GB/s): " << mspd_s << std::endl;
 
-        double perf = (double) tot_elems * 1.0e-9;
+        double perf = (double)tot_elems * 1.0e-9;
         perf = perf / total;
         std::cout << "perf " << perf << " GStencil/s" << std::endl;
         std::cout << "Total of " << bDecomp.ghost.size() << " parts" << std::endl;
@@ -335,16 +342,16 @@ int main(int argc, char **argv) {
     }
 
     if (!compareBrick<DIMS>({dom_size[0], dom_size[1], dom_size[2], dom_size[3]},
-                            {PADDING, PADDING, PADDING, PADDING},
-                            {GZ, GZ, GZ, GZ}, out_ptr, grid_ptr, bOut))
+                            {PADDING, PADDING, PADDING, PADDING}, {GZ, GZ, GZ, GZ}, out_ptr,
+                            grid_ptr, bOut))
       std::cout << "result mismatch!" << std::endl;
 
     free(bInfo.adj);
     free(out_ptr);
     free(in_ptr);
 
-    ((MEMFD *) bStorage.mmap_info)->cleanup();
-    ((MEMFD *) bStorageOut.mmap_info)->cleanup();
+    ((MEMFD *)bStorage.mmap_info)->cleanup();
+    ((MEMFD *)bStorageOut.mmap_info)->cleanup();
   }
 
   MPI_Finalize();
