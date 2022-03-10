@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
       hipEvent_t c_0, c_1;
       hipEventCreate(&c_0);
       hipEventCreate(&c_1);
-#if !defined(hip_AWARE) || !defined(USE_TYPES)
+#if !defined(CUDA_AWARE) || !defined(USE_TYPES)
       // Copy everything back from device
       double st = omp_get_wtime();
       copyFromDevice(stride, in_ptr, in_ptr_dev);
@@ -245,7 +245,7 @@ int main(int argc, char **argv) {
       hipEvent_t c_0, c_1;
       hipEventCreate(&c_0);
       hipEventCreate(&c_1);
-#ifndef hip_AWARE
+#ifndef CUDA_AWARE
       {
         double t_a = omp_get_wtime();
         hipMemcpy(bStorage.dat.get() + bStorage.step * bDecomp.sep_pos[0],
