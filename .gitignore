@@ -18,6 +18,7 @@ cmake-build-*
 *-out.cpp
 *-out.cu
 *-out.c
+*-out.hip.cpp
 
 # Python artifacts
 __pycache__/

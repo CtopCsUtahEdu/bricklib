@@ -6,6 +6,10 @@
 #ifndef BRICK_GPU_FUNCS_H
 #define BRICK_GPU_FUNCS_H
 
+#if !(defined(BRICK_BRICK_CUDA_H) || defined(BRICK_BRICK_HIP_H))
+#error "Include either brick-cuda.h or brick-hip.h for generic GPU defines"
+#endif
+
 #include <cassert>
 #include <brick.h>
 
