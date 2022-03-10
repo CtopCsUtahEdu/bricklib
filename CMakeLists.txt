@@ -23,6 +23,7 @@ endif ()
 
 # hip/samples/2_Cookbook/12_cmake_hip_add_executable
 if (USE_HIP)
+    cmake_minimum_required(VERSION 3.21)
     if(DEFINED ENV{HIP_PATH})
         set(HIP_PATH $ENV{HIP_PATH})
     else()
@@ -36,6 +37,7 @@ if (USE_HIP)
         message(FATAL_ERROR "HIP not found with USE_HIP specified")
     endif()
     find_package(hip REQUIRED)
+    set(CMAKE_HIP_ARCHITECTURES gfx908 gfx90a)
 endif()
 
 find_package(OpenMP REQUIRED)
