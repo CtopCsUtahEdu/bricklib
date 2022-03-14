@@ -5,23 +5,24 @@
 
 #include "stencils/fake.h"
 #include "stencils/stencils.h"
-#include <brick-cuda.h>
+#include <brick-hip.h>
+#include <brick-gpu.h>
 #include <brick-mpi.h>
 #include <brick.h>
 #include <bricksetup.h>
-#include <cuda.h>
 #include <iostream>
 #include <mpi.h>
 
 #include "bitset.h"
-#include "stencils/cudaarray.h"
-#include "stencils/cudavfold.h"
+#include "stencils/gpuarray.h"
+#include "stencils/hipvfold.h"
 #include <brickcompare.h>
 #include <multiarray.h>
 
-#include "args.h"
 #include <array-mpi.h>
 #include <unistd.h>
+
+#include "args.h"
 
 typedef Brick<Dim<BDIM>, Dim<VFOLD>> Brick3D;
 
@@ -52,7 +53,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  MPI_Comm cart = parseArgs(argc, argv, "cuda-mmap");
+  MPI_Comm cart = parseArgs(argc, argv, "hip-mmap");
 
   if (cart != MPI_COMM_NULL) {
     int rank;
@@ -73,11 +74,6 @@ int main(int argc, char **argv) {
     }
 
     bElem *in_ptr = randomArray(stride);
-
-    CUdevice device = 0;
-    CUcontext pctx;
-    gpuCheck((cudaError_t)cudaSetDevice(device));
-    gpuCheck((cudaError_t)cuCtxCreate(&pctx, CU_CTX_SCHED_AUTO | CU_CTX_MAP_HOST, device));
 
     BrickDecomp<3, BDIM> bDecomp(dom_size, GZ);
     bDecomp.comm = cart;
@@ -138,21 +134,18 @@ int main(int argc, char **argv) {
     std::unordered_map<uint64_t, MPI_Datatype> rtypemap;
     exchangeArrPrepareTypes<3>(stypemap, rtypemap, {dom_size[0], dom_size[1], dom_size[2]},
                                {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
-
+    bElem *in_ptr_avail = nullptr;
     {
       long arr_size = stride[0] * stride[1] * stride[2] * sizeof(bElem);
-      gpuCheck(cudaMemAdvise(in_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
-      cudaMemPrefetchAsync(in_ptr, arr_size, device);
-      gpuCheck(
-          cudaMemAdvise(out_ptr, arr_size, cudaMemAdviseSetPreferredLocation, cudaCpuDeviceId));
-      cudaMemPrefetchAsync(out_ptr, arr_size, device);
+      gpuCheck(hipHostRegister(in_ptr, arr_size, hipHostRegisterDefault));
+      gpuCheck(hipHostGetDevicePointer((void **)&in_ptr_avail, in_ptr, 0));
     }
 
     auto arr_func = [&]() -> void {
       float elapsed;
-      cudaEvent_t c_0, c_1;
-      cudaEventCreate(&c_0);
-      cudaEventCreate(&c_1);
+      hipEvent_t c_0, c_1;
+      hipEventCreate(&c_0);
+      hipEventCreate(&c_1);
 #ifdef USE_TYPES
       exchangeArrTypes<3>(in_ptr, cart, bDecomp.rank_map, stypemap, rtypemap);
 #else
@@ -160,17 +153,17 @@ int main(int argc, char **argv) {
                      {PADDING, PADDING, PADDING}, {GZ, GZ, GZ});
 #endif
 
-      cudaEventRecord(c_0);
+      hipEventRecord(c_0);
       dim3 block(strideb[0], strideb[1], strideb[2]), thread(TILE, TILE, TILE);
-      arr_kernel<<<block, thread>>>(in_ptr, out_ptr_dev, arr_stride_dev);
+      arr_kernel<<<block, thread>>>(in_ptr_avail, out_ptr_dev, arr_stride_dev);
       for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
         arr_kernel<<<block, thread>>>(out_ptr_dev, in_ptr_dev, arr_stride_dev);
         arr_kernel<<<block, thread>>>(in_ptr_dev, out_ptr_dev, arr_stride_dev);
       }
-      arr_kernel<<<block, thread>>>(out_ptr_dev, in_ptr, arr_stride_dev);
-      cudaEventRecord(c_1);
-      cudaEventSynchronize(c_1);
-      cudaEventElapsedTime(&elapsed, c_0, c_1);
+      arr_kernel<<<block, thread>>>(out_ptr_dev, in_ptr_avail, arr_stride_dev);
+      hipEventRecord(c_1);
+      hipEventSynchronize(c_1);
+      hipEventElapsedTime(&elapsed, c_0, c_1);
       calctime += elapsed / 1000.0;
     };
 
@@ -213,15 +206,15 @@ int main(int argc, char **argv) {
 
     // setup brick on device
     BrickInfo<3> *bInfo_dev;
-    auto _bInfo_dev = movBrickInfo(bInfo, cudaMemcpyHostToDevice);
+    auto _bInfo_dev = movBrickInfo(bInfo, hipMemcpyHostToDevice);
     {
       unsigned size = sizeof(BrickInfo<3>);
-      cudaMalloc(&bInfo_dev, size);
-      cudaMemcpy(bInfo_dev, &_bInfo_dev, size, cudaMemcpyHostToDevice);
+      hipMalloc(&bInfo_dev, size);
+      hipMemcpy(bInfo_dev, &_bInfo_dev, size, hipMemcpyHostToDevice);
     }
 
-    BrickStorage bStorageInt0_dev = movBrickStorage(bStorageInt0, cudaMemcpyHostToDevice);
-    BrickStorage bStorageInt1_dev = movBrickStorage(bStorageInt1, cudaMemcpyHostToDevice);
+    BrickStorage bStorageInt0_dev = movBrickStorage(bStorageInt0, hipMemcpyHostToDevice);
+    BrickStorage bStorageInt1_dev = movBrickStorage(bStorageInt1, hipMemcpyHostToDevice);
 
     Brick3D bIn_dev(bInfo_dev, bStorage, 0);
     Brick3D bInt0_dev(bInfo_dev, bStorageInt0_dev, 0);
@@ -241,20 +234,21 @@ int main(int argc, char **argv) {
 #ifndef DECOMP_PAGEUNALIGN
     ExchangeView ev = bDecomp.exchangeView(bStorage);
 #endif
-
-    gpuCheck(cudaMemAdvise(bStorage.dat.get(), bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem),
-                           cudaMemAdviseSetPreferredLocation, device));
-
-    cudaMemPrefetchAsync(bStorage.dat.get(), bStorage.step * bDecomp.sep_pos[2] * sizeof(bElem),
-                         device);
-
-    cudaMemPrefetchAsync(grid_ptr, STRIDEB * STRIDEB * STRIDEB * sizeof(unsigned), device);
+    BrickStorage bStorage_dev_avail = bStorage;
+    {
+      bElem *bS_avail = nullptr;
+      size_t b_size = bStorage.step * bStorage.chunks * sizeof(bElem);
+      gpuCheck(hipHostRegister(bStorage.dat.get(), b_size, hipHostRegisterDefault));
+      gpuCheck(hipHostGetDevicePointer((void **)&bS_avail, bStorage.dat.get(), 0));
+      bStorage_dev_avail.dat = std::shared_ptr<bElem>(bS_avail, [](bElem *p) {});
+    }
+    Brick3D bIn_dev_avail(bInfo_dev, bStorage_dev_avail, 0);
 
     auto brick_func = [&]() -> void {
       float elapsed;
-      cudaEvent_t c_0, c_1;
-      cudaEventCreate(&c_0);
-      cudaEventCreate(&c_1);
+      hipEvent_t c_0, c_1;
+      hipEventCreate(&c_0);
+      hipEventCreate(&c_1);
 
 #ifdef DECOMP_PAGEUNALIGN
       bDecomp.exchange(bStorage);
@@ -262,17 +256,17 @@ int main(int argc, char **argv) {
       ev.exchange();
 #endif
 
-      dim3 block(strideb[0], strideb[1], strideb[2]), thread(32);
-      cudaEventRecord(c_0);
-      brick_kernel<<<block, thread>>>(grid_dev_ptr, bIn_dev, bInt0_dev, grid_stride_dev);
+      dim3 block(strideb[0], strideb[1], strideb[2]), thread(64);
+      hipEventRecord(c_0);
+      brick_kernel<<<block, thread>>>(grid_dev_ptr, bIn_dev_avail, bInt0_dev, grid_stride_dev);
       for (int i = 0; i < ST_ITER / 2 - 1; ++i) {
         brick_kernel<<<block, thread>>>(grid_dev_ptr, bInt0_dev, bInt1_dev, grid_stride_dev);
         brick_kernel<<<block, thread>>>(grid_dev_ptr, bInt1_dev, bInt0_dev, grid_stride_dev);
       }
-      brick_kernel<<<block, thread>>>(grid_dev_ptr, bInt0_dev, bIn_dev, grid_stride_dev);
-      cudaEventRecord(c_1);
-      cudaEventSynchronize(c_1);
-      cudaEventElapsedTime(&elapsed, c_0, c_1);
+      brick_kernel<<<block, thread>>>(grid_dev_ptr, bInt0_dev, bIn_dev_avail, grid_stride_dev);
+      hipEventRecord(c_1);
+      hipEventSynchronize(c_1);
+      hipEventElapsedTime(&elapsed, c_0, c_1);
       calctime += elapsed / 1000.0;
     };
 

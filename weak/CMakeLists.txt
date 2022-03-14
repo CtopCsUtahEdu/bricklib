@@ -50,4 +50,13 @@ if (USE_HIP)
     target_link_libraries(weak-hip brick brick-mpi brickhelper ${MPI_CXX_LIBRARIES} ${LIBRT} hip::host)
     set_target_properties(weak-hip
             PROPERTIES OUTPUT_NAME hip)
+
+    set(H3MPIMMAP_INCLUDE_DIRS "${HIP_PATH}/include")
+    VSTARGET(H3MPIMMAP mmap.hip.cpp mmap-out.hip.cpp)
+    set(HIP_SRCS ${VSTARGET_H3MPIMMAP_OUTPUT} args.cpp)
+    set_source_files_properties(${HIP_SRCS} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
+    hip_add_executable(weak-hip-mmap ${HIP_SRCS} CLANG_OPTIONS ${CMAKE_CXX_FLAGS})
+    target_link_libraries(weak-hip-mmap brick brick-mpi brickhelper ${MPI_CXX_LIBRARIES} ${LIBRT} hip::host)
+    set_target_properties(weak-hip-mmap
+            PROPERTIES OUTPUT_NAME hip-mmap)
 endif ()
