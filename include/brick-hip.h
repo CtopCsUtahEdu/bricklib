@@ -25,6 +25,14 @@
 
 #define gpuExecKernel(f, b, t, a...) hipLaunchKernelGGL(f, b, t, 0, 0, a)
 
+#define blockIdx_x hipBlockIdx_x
+#define blockIdx_y hipBlockIdx_y
+#define blockIdx_z hipBlockIdx_z
+
+#define threadIdx_x hipThreadIdx_x
+#define threadIdx_y hipThreadIdx_y
+#define threadIdx_z hipThreadIdx_z
+
 #include "brick-gpu.h"
 
 #endif // BRICK_BRICK_HIP_H
