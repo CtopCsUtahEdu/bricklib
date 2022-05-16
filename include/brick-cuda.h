@@ -23,6 +23,14 @@
 #define gpuFuncCachePreferL1 cudaFuncCachePreferL1
 #define gpuExecKernel(f, b, t, a...) f<<<b,t>>>(a)
 
+#define blockIdx_x cudaBlockIdx.x
+#define blockIdx_y cudaBlockIdx.y
+#define blockIdx_z cudaBlockIdx.z
+
+#define threadIdx_x cudaThreadIdx.x
+#define threadIdx_y cudaThreadIdx.y
+#define threadIdx_z cudaThreadIdx.z
+
 #include "brick-gpu.h"
 
 #endif // BRICK_BRICK_CUDA_H
