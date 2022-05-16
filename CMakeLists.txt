@@ -97,16 +97,18 @@ endif ()
 # Avoid using O3
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
-check_cxx_compiler_flag(-march=native HAS_MARCH)
+option(BUILD_ARCH "Specify build architecture target" "native")
+
+check_cxx_compiler_flag("-march=${BUILD_ARCH}" HAS_MARCH)
 if (HAS_MARCH)
-    message(STATUS "Using march=native")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+    message(STATUS "Using march=${BUILD_ARCH}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${BUILD_ARCH}")
 else ()
     # Work around Summit only have mcpu flag
-    check_cxx_compiler_flag(-mcpu=native HAS_MCPU)
+    check_cxx_compiler_flag("-mcpu=${BUILD_ARCH}" HAS_MCPU)
     if (HAS_MCPU)
-        message(STATUS "Using mcpu=native")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=native")
+        message(STATUS "Using mcpu=${BUILD_ARCH}")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=${BUILD_ARCH}")
     endif ()
 endif ()
 
