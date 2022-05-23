@@ -99,7 +99,13 @@ endif ()
 # Avoid using O3
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
-option(BUILD_ARCH "Specify build architecture target" "native")
+option(BUILD_ARCH "Specify build architecture target" OFF)
+
+if (NOT BUILD_ARCH)
+    set(BUILD_ARCH "native")
+endif ()
+
+message(STATUS "Verifying ${BUILD_ARCH} build architecture")
 
 check_cxx_compiler_flag("-march=${BUILD_ARCH}" HAS_MARCH)
 if (HAS_MARCH)
@@ -111,6 +117,9 @@ else ()
     if (HAS_MCPU)
         message(STATUS "Using mcpu=${BUILD_ARCH}")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mcpu=${BUILD_ARCH}")
+    else ()
+        message(STATUS "Unable to use ${BUILD_ARCH} for build arch, defaulting to native")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
     endif ()
 endif ()
 
