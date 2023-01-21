@@ -81,6 +81,8 @@ endif ()
 check_cxx_compiler_flag(-fsycl HAS_SYCL)
 
 if (HAS_SYCL)
+    # Sycl requires 17
+    set(CMAKE_CXX_STANDARD 17)
     get_filename_component(bin_dir "${CMAKE_CXX_COMPILER}" PATH)
     get_filename_component(SYCL_DIR "${bin_dir}" PATH)
 
@@ -99,7 +101,7 @@ endif ()
 # Avoid using O3
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
-option(BUILD_ARCH "Specify build architecture target" "native")
+set(BUILD_ARCH "native" CACHE STRING "Specify build architecture target")
 
 check_cxx_compiler_flag("-march=${BUILD_ARCH}" HAS_MARCH)
 if (HAS_MARCH)

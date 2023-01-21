@@ -3,8 +3,6 @@
 // Experiments using unified memory (through ATS)
 //
 
-#include "stencils/fake.h"
-#include "stencils/stencils.h"
 #include <brick-cuda.h>
 #include <brick-mpi.h>
 #include <brick.h>
@@ -16,6 +14,8 @@
 #include "bitset.h"
 #include "stencils/cudaarray.h"
 #include "stencils/cudavfold.h"
+#include "stencils/fake.h"
+#include "stencils/stencils.h"
 #include <brickcompare.h>
 #include <multiarray.h>
 
