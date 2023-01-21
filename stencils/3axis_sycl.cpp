@@ -7,6 +7,7 @@
 #include "multiarray.h"
 #include <CL/sycl.hpp>
 #include <iostream>
+
 #include "stencils.h"
 
 #define VSVEC "SYCL"
@@ -16,6 +17,19 @@
 using namespace cl::sycl;
 
 cl::sycl::device *sycl_device;
+
+template <typename T> double sycl_time_func(cl::sycl::queue &squeue, T kernel) {
+  int sycl_iter = 100;
+  auto st_event = squeue.submit(kernel);
+  for (int i = 0; i < sycl_iter - 2; ++i)
+    squeue.submit(kernel);
+  auto ed_event = squeue.submit(kernel);
+  ed_event.wait();
+  double elapsed = ed_event.template get_profiling_info<info::event_profiling::command_end>() -
+                   st_event.template get_profiling_info<info::event_profiling::command_start>();
+  elapsed *= (1e-9 / sycl_iter);
+  return elapsed;
+}
 
 void printInfo(cl::sycl::device &Device) {
   std::cout << "Using OpenCL " << (Device.is_cpu() ? "CPU" : "GPU") << " device {"
@@ -95,7 +109,39 @@ void d3pt7() {
   std::cout << "d3pt7" << std::endl;
   std::cout << "Arr: " << time_func(arr_func) << std::endl;
 
-  nd_range<1> nworkitem(range<1>(1024 * SYCL_SUBGROUP), range<1>(SYCL_SUBGROUP));
+  buffer<bElem, 3> arr_in_buf({range<3>(STRIDE, STRIDE, STRIDE)});
+  buffer<bElem, 3> arr_out_buf({range<3>(STRIDE, STRIDE, STRIDE)});
+
+  auto arr_kernel = [&](handler &cgh) {
+    auto coeff = coeff_buf.get_access<access::mode::read>(cgh);
+    auto arr_in = arr_in_buf.get_access<access::mode::read>(cgh);
+    auto arr_out = arr_out_buf.get_access<access::mode::write>(cgh);
+
+    nd_range<3> nworkitem(range<3>(N, N, N), range<3>(TILE, TILE, TILE));
+    cgh.parallel_for<class ArrayStencil>(nworkitem, [=](nd_item<3> WIid) {
+      auto i = WIid.get_global_id(0) + GZ;
+      auto j = WIid.get_global_id(1) + GZ;
+      auto k = WIid.get_global_id(2) + GZ;
+      arr_out[k][j][i] = coeff[5] * arr_in[k + 1][j][i] + coeff[6] * arr_in[k - 1][j][i] +
+                         coeff[3] * arr_in[k][j + 1][i] + coeff[4] * arr_in[k][j - 1][i] +
+                         coeff[1] * arr_in[k][j][i + 1] + coeff[2] * arr_in[k][j][i - 1] +
+                         coeff[0] * arr_in[k][j][i];
+    });
+  };
+
+  {
+    // Move to gpu
+    squeue.submit([&](cl::sycl::handler &cgh) {
+      auto arr_in = arr_in_buf.get_access<cl::sycl::access::mode::discard_write>(cgh);
+      cgh.copy(in_ptr, arr_in);
+    });
+  }
+
+  {
+    // Run sycl kernel
+    std::cout << "Arr sycl: " << sycl_time_func(squeue, arr_kernel) << std::endl;
+  }
+
   auto kernel = [&](handler &cgh) {
     auto bDat_s = bDat_buf.get_access<access::mode::read_write>(cgh);
     auto adj_s = adj_buf.get_access<access::mode::read_write>(cgh);
@@ -103,6 +149,7 @@ void d3pt7() {
     auto bIdx_s = bIdx_buf.get_access<access::mode::read>(cgh);
     auto len = bIdx.size();
 
+    nd_range<1> nworkitem(range<1>(1024 * SYCL_SUBGROUP), range<1>(SYCL_SUBGROUP));
     cgh.parallel_for<class brickStencilTrans>(
         nworkitem, [=](nd_item<1> WIid) [[intel::reqd_sub_group_size(SYCL_SUBGROUP)]] {
           auto SG = WIid.get_sub_group();
@@ -126,17 +173,17 @@ void d3pt7() {
   }
 
   {
-    // Sycl is too slow and failed with "Release"
-    /*auto st_event = squeue.submit(kernel);
+    // Run sycl kernel
     int sycl_iter = 100;
+    auto st_event = squeue.submit(kernel);
     for (int i = 0; i < sycl_iter - 2; ++i)
-      squeue.submit(kernel);*/
+      squeue.submit(kernel);
     auto ed_event = squeue.submit(kernel);
     ed_event.wait();
     double elapsed = ed_event.get_profiling_info<info::event_profiling::command_end>() -
-                     ed_event.get_profiling_info<info::event_profiling::command_start>();
-    elapsed *= 1e-9;
-    std::cout << "Brick: " << elapsed << std::endl;
+                     st_event.get_profiling_info<info::event_profiling::command_start>();
+    elapsed *= (1e-9 / sycl_iter);
+    std::cout << "Brick: " << sycl_time_func(squeue, kernel) << std::endl;
   }
 
   {
@@ -176,5 +223,4 @@ void d3pt7() {
   free(in_ptr);
   free(out_ptr);
   free(grid_ptr);
-  // free(bInfo.adj);
 }
