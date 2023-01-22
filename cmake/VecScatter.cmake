@@ -17,13 +17,19 @@ macro(VSTARGET Name Input Output)
         list(APPEND VSTARGET_INC -I${dir})
     endforeach ()
     string(REPLACE " " ";" CMAKE_CXX_FLAGS_LIST ${CMAKE_CXX_FLAGS})
+    get_directory_property(COMPILE_OPTS COMPILE_OPTIONS)
+    get_directory_property(COMPILE_DEFS_RAW COMPILE_DEFINITIONS)
+    set(COMPILE_DEFS "")
+    foreach(DEF ${COMPILE_DEFS_RAW})
+        list(APPEND COMPILE_DEFS "-D${DEF}")
+    endforeach()
     if (IS_ABSOLUTE "${Output}")
         set(VSTARGET_${Name}_OUTPUT "${Output}")
     else()
         set(VSTARGET_${Name}_OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/${Output}")
     endif()
     add_custom_command(OUTPUT "${VSTARGET_${Name}_OUTPUT}"
-            COMMAND ${CMAKE_COMMAND} -E env VSCPP=${VS_PREPROCESSOR} ${Python_EXECUTABLE} ${VecScatter_SCRIPT} "${Input}" "${VSTARGET_${Name}_OUTPUT}" -- ${CMAKE_CXX_FLAGS_LIST} ${${Name}_COMPILE_OPTIONS} ${VSTARGET_INC}
+            COMMAND ${CMAKE_COMMAND} -E env VSCPP=${VS_PREPROCESSOR} ${Python_EXECUTABLE} ${VecScatter_SCRIPT} "${Input}" "${VSTARGET_${Name}_OUTPUT}" -- ${CMAKE_CXX_FLAGS_LIST} ${COMPILE_OPTS} ${COMPILE_DEFS} ${${Name}_COMPILE_OPTIONS} ${VSTARGET_INC}
             VERBATIM
             MAIN_DEPENDENCY "${Input}"
             COMMENT "[VS][${Name}] Vector Scatter transformation"
