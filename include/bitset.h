@@ -7,6 +7,7 @@
 #define BRICK_BITSET_H
 
 #include <initializer_list>
+#include <cstdint>
 #include <ostream>
 
 /**
