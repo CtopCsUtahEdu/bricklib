@@ -4,10 +4,13 @@
 
 #include "memfd.h"
 #include "brick.h"
-#include <sys/stat.h>        /* For mode constants */
-#include <fcntl.h>           /* For O_* constants */
+#include <fcntl.h>    /* For O_* constants */
+#include <string.h>   /* For strerror */
+#include <sys/mman.h> /* For memfd manip */
+#include <sys/stat.h> /* For mode constants */
+#include <unistd.h>   /* For sysconf */
 
-uint8_t *MEMFD::mmap_end = (uint8_t *) 0x600000000000L; // 11 zeros, one leading digit is 2^44 = 16TB
+uint8_t *MEMFD::mmap_end = (uint8_t *)0x600000000000L; // 11 zeros, one leading digit is 2^44 = 16TB
 std::set<void *> MEMFD::allocated;
 
 #ifndef USE_MEMFD
@@ -26,7 +29,7 @@ void MEMFD::free(void *ptr, size_t length) {
   if (it_st == allocated.end())
     return;
   auto it_ed = allocated.find(ptr);
-  while (it_ed != allocated.end() && *it_ed < (char *) ptr + length)
+  while (it_ed != allocated.end() && *it_ed < (char *)ptr + length)
     it_ed++;
   allocated.erase(it_st, it_ed);
 }
@@ -53,13 +56,15 @@ void MEMFD::cleanup() {
 void *MEMFD::map_pointer(void *hint, size_t fpos, size_t mlen) {
   bool update = (hint == nullptr);
   if (update)
-    hint = (uint8_t *) mmap_end - mlen;
+    hint = (uint8_t *)mmap_end - mlen;
   void *res = mmap(hint, mlen, PROT_READ | PROT_WRITE, MAP_SHARED, ring_fd, fpos + offset);
-  if (res == MAP_FAILED) printf("map to %p failed with error: %s\n", hint, strerror(errno));
-  else if (res != hint) printf("hint failed!\n");
+  if (res == MAP_FAILED)
+    printf("map to %p failed with error: %s\n", hint, strerror(errno));
+  else if (res != hint)
+    printf("hint failed!\n");
   allocated.insert(res);
   if (update)
-    mmap_end = (uint8_t *) res;
+    mmap_end = (uint8_t *)res;
   return res;
 }
 
@@ -111,9 +116,8 @@ BrickStorage BrickStorage::mmap_alloc(long chunks, long step) {
   b.chunks = chunks;
   b.step = step;
   // Brick compute use the canonical view
-  b.dat = std::shared_ptr<bElem>((bElem *) memfd->packed_pointer({0, size}), [size](bElem *p) {
-    MEMFD::free(p, size);
-  });
+  b.dat = std::shared_ptr<bElem>((bElem *)memfd->packed_pointer({0, size}),
+                                 [size](bElem *p) { MEMFD::free(p, size); });
   b.mmap_info = memfd;
   return b;
 }
@@ -124,9 +128,8 @@ BrickStorage BrickStorage::mmap_alloc(long chunks, long step, void *mmap_fd, siz
   auto memfd = static_cast<MEMFD *>(mmap_fd)->duplicate(offset);
   b.chunks = chunks;
   b.step = step;
-  b.dat = std::shared_ptr<bElem>((bElem *) memfd->packed_pointer({0, size}), [size](bElem *p) {
-    MEMFD::free(p, size);
-  });
+  b.dat = std::shared_ptr<bElem>((bElem *)memfd->packed_pointer({0, size}),
+                                 [size](bElem *p) { MEMFD::free(p, size); });
   b.mmap_info = memfd;
   return b;
 }

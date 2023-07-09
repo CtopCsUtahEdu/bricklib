@@ -36,7 +36,6 @@ class BackendAVX512(Backend):
         space = 1
         for a, b in buf.iteration:
             space *= b - a
-        # block.append("vfloat{} {};".format(space, buf.name))
         align = self.layout.prec * 4 * space
         align = 64 if align >= 64 else align
         block.append("bElem {}[{}] __attribute__((aligned({})));".format(buf.name, space, align))
@@ -99,7 +98,6 @@ class BackendAVX512(Backend):
         align = self.layout.prec * 4 * self.VECLEN
         align = 64 if align >= 64 else align
         block.append("bElem {}[{}] __attribute__((aligned({})));".format(name, self.VECLEN, align))
-        # block.append("vfloat{} {};".format(self.VECLEN, name))
 
     def declare_vec(self, name, block: CodeBlock):
         block.append("__m512i {};".format(name))

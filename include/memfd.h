@@ -6,15 +6,11 @@
 #ifndef BRICK_MEMFD_H
 #define BRICK_MEMFD_H
 
-#include <iostream>
-#include <vector>
+#include <cstdint>
 #include <initializer_list>
 #include <set>
-#include <sys/mman.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>
+#include <string>
+#include <vector>
 
 class MEMFD {
 private:
@@ -35,7 +31,8 @@ public:
 
   static void free(void *ptr, size_t length);
 
-  MEMFD(MEMFD* memfd): len(memfd->len), ring_fd(memfd->ring_fd), pagesize(memfd->pagesize), offset(0) {
+  MEMFD(MEMFD *memfd)
+      : len(memfd->len), ring_fd(memfd->ring_fd), pagesize(memfd->pagesize), offset(0) {
 #ifndef USE_MEMFD
     shm_name = memfd->shm_name;
 #endif
@@ -59,4 +56,4 @@ public:
 
 // TODO Record and free pointers
 
-#endif //BRICK_MEMFD_H
+#endif // BRICK_MEMFD_H
