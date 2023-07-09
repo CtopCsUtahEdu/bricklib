@@ -19,6 +19,7 @@
 
 #include <memfd.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 #define GZ 8
 #define TILE 8

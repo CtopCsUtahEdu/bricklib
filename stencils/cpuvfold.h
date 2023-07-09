@@ -9,8 +9,10 @@
 
 // Setting for X86 with at least AVX512 support
 #include <immintrin.h>
-#define VSVEC "AVX512"
-#define VFOLD 8
+// #define VSVEC "AVX512"
+// #define VFOLD 8
+#define VSVEC "Scalar"
+#define VFOLD 1
 
 #elif defined(__AVX2__)
 
