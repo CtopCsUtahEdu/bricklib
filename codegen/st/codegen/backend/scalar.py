@@ -49,7 +49,7 @@ class BackendScalar(Backend):
         space = 1
         for a, b in buf.iteration:
             space *= b - a
-        block.append("vfloat{} {};".format(space, buf.name))
+        block.append("bElem {}[{}];".format(buf.name, space))
         return buf.name
 
     def declare_gridref(self, grid: Grid, block: CodeBlock):
